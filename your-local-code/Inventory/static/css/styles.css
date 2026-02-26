@@ -1,0 +1,126 @@
+:root{
+  --muted: #6b7280;
+  --border: rgba(0,0,0,0.15);
+  --max: 1100px;
+}
+
+*{ box-sizing: border-box; }
+
+body{
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: white;
+  color: #222;
+}
+
+.container{
+  width: min(var(--max), calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+h1{ margin: 0 0 1rem; }
+h2{ margin: 0; }
+
+/* ================= HEADER ================= */
+
+.site-header{
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #ff7a00;
+  padding: 1.8rem 0;
+}
+
+.header-inner{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand{
+  display: flex;
+  align-items: center;
+}
+
+.brand-icon{
+  width: 110px;
+  height: auto;
+}
+
+.nav{
+  display: flex;
+  gap: 1rem;
+}
+
+.nav-link{
+  color: white;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.nav-link:hover{
+  background: rgba(255,255,255,0.2);
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+.nav-link.active{
+  background: white;
+  color: #ff7a00;
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+/* ================= DASHBOARD LAYOUT ================= */
+
+.dashboard{
+  padding: 2rem 0 3rem;
+}
+
+.panel-grid{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.panel{
+  border: 2px solid #111;
+  border-radius: 18px;
+  min-height: 250px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-wide{
+  margin-top: 1.5rem;
+}
+
+.panel-wide .panel{
+  min-height: 180px;
+}
+
+/* ================= ABOUT PAGE ================= */
+
+.about-section{
+  padding: 2rem;
+}
+
+.about-section p{
+  max-width: 750px;
+  color: #444;
+}
+
+.about-section ul{
+  margin-top: 1rem;
+  padding-left: 1.5rem;
+  color: var(--muted);
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 900px){
+  .panel-grid{
+    grid-template-columns: 1fr;
+  }
+}
