@@ -122,10 +122,10 @@ STATIC_URL = '/static/'
 
 # This tells Django where to find your root static files during development
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
+    BASE_DIR / "static/",
 ]
 
-# This is used by Render/Gunicorn to serve files in production [cite: 17, 24]
+# This is used by Render/Gunicorn to serve files in production 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Sets How Whitenoise handles file storage. 
