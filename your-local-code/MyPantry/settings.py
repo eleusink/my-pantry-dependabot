@@ -119,6 +119,14 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# This tells Django where to find your root static files during development
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
+# This is used by Render/Gunicorn to serve files in production [cite: 17, 24]
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
