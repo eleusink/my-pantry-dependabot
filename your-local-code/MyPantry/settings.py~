@@ -50,8 +50,12 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+<<<<<<< HEAD
     
 
+=======
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+>>>>>>> aabdd1bd4510fd0bb47b00e8a9314da38e6a30af
 ]
 
 ROOT_URLCONF = 'MyPantry.urls'
@@ -121,7 +125,22 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = '/static/'
+<<<<<<< HEAD
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedMainifestStaticFilesStorage"
+=======
+
+# This tells Django where to find your root static files during development
+STATICFILES_DIRS = [
+    BASE_DIR / "static/",
+]
+
+# This is used by Render/Gunicorn to serve files in production 
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Sets How Whitenoise handles file storage. 
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+>>>>>>> aabdd1bd4510fd0bb47b00e8a9314da38e6a30af
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
