@@ -56,19 +56,17 @@ h2{ margin: 0; }
   color: white;
   font-weight: 600;
   text-decoration: none;
+  padding: 6px 14px;
+  border-radius: 20px;
 }
 
 .nav-link:hover{
   background: rgba(255,255,255,0.2);
-  padding: 6px 14px;
-  border-radius: 20px;
 }
 
-.nav-link.active{
+.nav-link:active{
   background: white;
   color: #ff7a00;
-  padding: 6px 14px;
-  border-radius: 20px;
 }
 
 /* ================= DASHBOARD LAYOUT ================= */
