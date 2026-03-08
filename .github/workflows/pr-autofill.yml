@@ -1,10 +1,10 @@
 # Name shown in the GitHub Actions tab
-name: Autofill PR from branch name
+name: PR Autofill
 
-# Run this workflow when a pull request is opened or reopened
+# Run this workflow when a pull request is opened, reopened, or updated
 on:
   pull_request_target:
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
 
 # Allow the workflow to edit PR titles and bodies
 permissions:
@@ -15,6 +15,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      # Checkout the repository so the gh CLI can run in a git repo
+      - uses: actions/checkout@v4
+
       - name: Autofill PR title/body
         env:
           # GitHub token used by gh CLI to edit the PR
@@ -26,10 +30,6 @@ jobs:
           # Pull request number
           PR_NUMBER: ${{ github.event.pull_request.number }}
 
-          # Current PR title/body so we don't overwrite user edits
-          CURRENT_TITLE: ${{ github.event.pull_request.title }}
-          CURRENT_BODY: ${{ github.event.pull_request.body }}
-
         run: |
 
           # Function to make branch text human readable
@@ -38,106 +38,52 @@ jobs:
             echo "$1" | sed 's/[-_]/ /g' | xargs
           }
 
-          # Default values are the existing title/body
-          NEW_TITLE="$CURRENT_TITLE"
-          NEW_BODY="$CURRENT_BODY"
-
           # ------------------------------------------------
           # CASE 1: Issue branch
           # Example branch: 123/add-login-button
           # ------------------------------------------------
           if [[ "$BRANCH" =~ ^([0-9]+)/(.+)$ ]]; then
 
+            # Extract issue number and description
             ISSUE_NUMBER="${BASH_REMATCH[1]}"
             RAW_DESC="${BASH_REMATCH[2]}"
+
+            # Convert description to readable text
             DESC="$(prettify "$RAW_DESC")"
 
-            # If the PR title is empty, create one automatically
-            if [[ -z "$CURRENT_TITLE" ]]; then
-              NEW_TITLE="[#$ISSUE_NUMBER] $DESC"
-            fi
+            # Build PR title
+            NEW_TITLE="[#$ISSUE_NUMBER] $DESC"
 
-            # If the PR body is empty, insert a full template
-            if [[ -z "$CURRENT_BODY" ]]; then
-              NEW_BODY=$(cat <<EOF
-            ## Summary
-            $DESC
-
-            ## Testing
-            -
-
-            ## Notes
-            -
-
-            Closes #$ISSUE_NUMBER
-            EOF
-            )
-
-            # If body exists but doesn't reference the issue, append "Closes #123"
-            elif ! grep -Eiq "(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)[[:space:]]+#$ISSUE_NUMBER" <<< "$CURRENT_BODY"; then
-              NEW_BODY="${CURRENT_BODY}
-
-            Closes #$ISSUE_NUMBER"
-                        fi
+            # Build PR body template
+            NEW_BODY="$(printf '## Summary\n%s\n\n## Testing\n-\n\n## Notes\n-\n\nCloses #%s' "$DESC" "$ISSUE_NUMBER")"
 
           # ------------------------------------------------
-          # CASE 2: Hotfix branch
-          # Example branch: hotfix/prod-timeout-fix
+          # CASE 2: Hotfix
+          # Example: hotfix/prod-timeout-fix
           # ------------------------------------------------
           elif [[ "$BRANCH" =~ ^hotfix/(.+)$ ]]; then
 
             RAW_DESC="${BASH_REMATCH[1]}"
             DESC="$(prettify "$RAW_DESC")"
 
-            # Auto-title if user didn't provide one
+            # Auto-title
             if [[ -z "$CURRENT_TITLE" ]]; then
-              NEW_TITLE="[HOTFIX] $DESC"
-            fi
+            NEW_TITLE="[HOTFIX] $DESC"
 
-            # Insert a hotfix-specific PR template if body is empty
-            if [[ -z "$CURRENT_BODY" ]]; then
-              NEW_BODY=$(cat <<EOF
-            ## Summary
-            $DESC
-
-            ## Why this is urgent
-            -
-
-            ## Validation
-            -
-
-            ## Risk
-            -
-            EOF
-            )
-            fi
+            NEW_BODY="$(printf '## Summary\n%s\n\n## Why this is urgent\n-\n\n## Validation\n-\n\n## Risk\n-' "$DESC")"
 
           # ------------------------------------------------
-          # CASE 3: Chore branch
-          # Example branch: chore/update-readme
+          # CASE 3: Chore
+          # Example: chore/update-readme
           # ------------------------------------------------
           elif [[ "$BRANCH" =~ ^chore/(.+)$ ]]; then
 
             RAW_DESC="${BASH_REMATCH[1]}"
             DESC="$(prettify "$RAW_DESC")"
 
-            if [[ -z "$CURRENT_TITLE" ]]; then
-              NEW_TITLE="[CHORE] $DESC"
-            fi
+            NEW_TITLE="[CHORE] $DESC"
 
-            if [[ -z "$CURRENT_BODY" ]]; then
-              NEW_BODY=$(cat <<EOF
-            ## Summary
-            $DESC
-
-            ## Testing
-            -
-
-            ## Notes
-            -
-            EOF
-            )
-                        fi
+            NEW_BODY="$(printf '## Summary\n%s\n\n## Testing\n-\n\n## Notes\n-' "$DESC")"
 
           # ------------------------------------------------
           # If the branch doesn't match expected patterns,
