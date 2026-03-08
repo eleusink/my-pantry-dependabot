@@ -3,7 +3,7 @@ name: PR Autofill
 
 # Run this workflow when a pull request is opened, reopened, or updated
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, reopened]
 
 # Allow the workflow to edit PR titles and bodies
