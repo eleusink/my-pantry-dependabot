@@ -15,10 +15,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
-      # Checkout the repository so the gh CLI can run in a git repo
-      - uses: actions/checkout@v4
-
       - name: Autofill PR title/body
         env:
           # GitHub token used by gh CLI to edit the PR
@@ -29,6 +25,9 @@ jobs:
 
           # Pull request number
           PR_NUMBER: ${{ github.event.pull_request.number }}
+
+          # Repository
+          REPO: ${{ github.repository }}
 
         run: |
 
@@ -95,4 +94,4 @@ jobs:
           fi
 
           # Update the pull request with the new title/body
-          gh pr edit "$PR_NUMBER" --title "$NEW_TITLE" --body "$NEW_BODY"
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --title "$NEW_TITLE" --body "$NEW_BODY"
