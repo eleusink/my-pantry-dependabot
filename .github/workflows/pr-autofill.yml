@@ -1,0 +1,152 @@
+# Name shown in the GitHub Actions tab
+name: Autofill PR from branch name
+
+# Run this workflow when a pull request is opened or reopened
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+# Allow the workflow to edit PR titles and bodies
+permissions:
+  pull-requests: write
+
+jobs:
+  autofill:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Autofill PR title/body
+        env:
+          # GitHub token used by gh CLI to edit the PR
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # Source branch name (example: 123/add-login-button)
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+
+          # Pull request number
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+
+          # Current PR title/body so we don't overwrite user edits
+          CURRENT_TITLE: ${{ github.event.pull_request.title }}
+          CURRENT_BODY: ${{ github.event.pull_request.body }}
+
+        run: |
+
+          # Function to make branch text human readable
+          # Example: "add-login-button" -> "add login button"
+          prettify() {
+            echo "$1" | sed 's/[-_]/ /g' | xargs
+          }
+
+          # Default values are the existing title/body
+          NEW_TITLE="$CURRENT_TITLE"
+          NEW_BODY="$CURRENT_BODY"
+
+          # ------------------------------------------------
+          # CASE 1: Issue branch
+          # Example branch: 123/add-login-button
+          # ------------------------------------------------
+          if [[ "$BRANCH" =~ ^([0-9]+)/(.+)$ ]]; then
+
+            ISSUE_NUMBER="${BASH_REMATCH[1]}"
+            RAW_DESC="${BASH_REMATCH[2]}"
+            DESC="$(prettify "$RAW_DESC")"
+
+            # If the PR title is empty, create one automatically
+            if [[ -z "$CURRENT_TITLE" ]]; then
+              NEW_TITLE="[#$ISSUE_NUMBER] $DESC"
+            fi
+
+            # If the PR body is empty, insert a full template
+            if [[ -z "$CURRENT_BODY" ]]; then
+              NEW_BODY=$(cat <<EOF
+## Summary
+$DESC
+
+## Testing
+-
+
+## Notes
+-
+
+Closes #$ISSUE_NUMBER
+EOF
+)
+
+            # If body exists but doesn't reference the issue, append "Closes #123"
+            elif ! grep -Eiq "(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)[[:space:]]+#$ISSUE_NUMBER" <<< "$CURRENT_BODY"; then
+              NEW_BODY="${CURRENT_BODY}
+
+Closes #$ISSUE_NUMBER"
+            fi
+
+          # ------------------------------------------------
+          # CASE 2: Hotfix branch
+          # Example branch: hotfix/prod-timeout-fix
+          # ------------------------------------------------
+          elif [[ "$BRANCH" =~ ^hotfix/(.+)$ ]]; then
+
+            RAW_DESC="${BASH_REMATCH[1]}"
+            DESC="$(prettify "$RAW_DESC")"
+
+            # Auto-title if user didn't provide one
+            if [[ -z "$CURRENT_TITLE" ]]; then
+              NEW_TITLE="[HOTFIX] $DESC"
+            fi
+
+            # Insert a hotfix-specific PR template if body is empty
+            if [[ -z "$CURRENT_BODY" ]]; then
+              NEW_BODY=$(cat <<EOF
+## Summary
+$DESC
+
+## Why this is urgent
+-
+
+## Validation
+-
+
+## Risk
+-
+EOF
+)
+            fi
+
+          # ------------------------------------------------
+          # CASE 3: Chore branch
+          # Example branch: chore/update-readme
+          # ------------------------------------------------
+          elif [[ "$BRANCH" =~ ^chore/(.+)$ ]]; then
+
+            RAW_DESC="${BASH_REMATCH[1]}"
+            DESC="$(prettify "$RAW_DESC")"
+
+            if [[ -z "$CURRENT_TITLE" ]]; then
+              NEW_TITLE="[CHORE] $DESC"
+            fi
+
+            if [[ -z "$CURRENT_BODY" ]]; then
+              NEW_BODY=$(cat <<EOF
+## Summary
+$DESC
+
+## Testing
+-
+
+## Notes
+-
+EOF
+)
+            fi
+
+          # ------------------------------------------------
+          # If the branch doesn't match expected patterns,
+          # the workflow exits and does nothing.
+          # ------------------------------------------------
+          else
+            echo "Branch name did not match expected format: $BRANCH"
+            exit 0
+          fi
+
+          # Update the pull request with the new title/body
+          gh pr edit "$PR_NUMBER" --title "$NEW_TITLE" --body "$NEW_BODY"
