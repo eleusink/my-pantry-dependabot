@@ -67,7 +67,6 @@ jobs:
             DESC="$(prettify "$RAW_DESC")"
 
             # Auto-title
-            if [[ -z "$CURRENT_TITLE" ]]; then
             NEW_TITLE="[HOTFIX] $DESC"
 
             NEW_BODY="$(printf '## Summary\n%s\n\n## Why this is urgent\n-\n\n## Validation\n-\n\n## Risk\n-' "$DESC")"
@@ -81,6 +80,7 @@ jobs:
             RAW_DESC="${BASH_REMATCH[1]}"
             DESC="$(prettify "$RAW_DESC")"
 
+            # Auto-title
             NEW_TITLE="[CHORE] $DESC"
 
             NEW_BODY="$(printf '## Summary\n%s\n\n## Testing\n-\n\n## Notes\n-' "$DESC")"
