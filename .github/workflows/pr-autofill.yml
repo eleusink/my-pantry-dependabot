@@ -60,25 +60,25 @@ jobs:
             # If the PR body is empty, insert a full template
             if [[ -z "$CURRENT_BODY" ]]; then
               NEW_BODY=$(cat <<EOF
-## Summary
-$DESC
+            ## Summary
+            $DESC
 
-## Testing
--
+            ## Testing
+            -
 
-## Notes
--
+            ## Notes
+            -
 
-Closes #$ISSUE_NUMBER
-EOF
-)
+            Closes #$ISSUE_NUMBER
+            EOF
+            )
 
             # If body exists but doesn't reference the issue, append "Closes #123"
             elif ! grep -Eiq "(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)[[:space:]]+#$ISSUE_NUMBER" <<< "$CURRENT_BODY"; then
               NEW_BODY="${CURRENT_BODY}
 
-Closes #$ISSUE_NUMBER"
-            fi
+            Closes #$ISSUE_NUMBER"
+                        fi
 
           # ------------------------------------------------
           # CASE 2: Hotfix branch
@@ -97,19 +97,19 @@ Closes #$ISSUE_NUMBER"
             # Insert a hotfix-specific PR template if body is empty
             if [[ -z "$CURRENT_BODY" ]]; then
               NEW_BODY=$(cat <<EOF
-## Summary
-$DESC
+            ## Summary
+            $DESC
 
-## Why this is urgent
--
+            ## Why this is urgent
+            -
 
-## Validation
--
+            ## Validation
+            -
 
-## Risk
--
-EOF
-)
+            ## Risk
+            -
+            EOF
+            )
             fi
 
           # ------------------------------------------------
@@ -127,17 +127,17 @@ EOF
 
             if [[ -z "$CURRENT_BODY" ]]; then
               NEW_BODY=$(cat <<EOF
-## Summary
-$DESC
+            ## Summary
+            $DESC
 
-## Testing
--
+            ## Testing
+            -
 
-## Notes
--
-EOF
-)
-            fi
+            ## Notes
+            -
+            EOF
+            )
+                        fi
 
           # ------------------------------------------------
           # If the branch doesn't match expected patterns,
