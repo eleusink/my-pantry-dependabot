@@ -20,14 +20,14 @@ graph TD
     Gate -- Yes --> Merge[✅ Merge to Main Allowed]
     Gate -- No --> Block[❌ Merge Blocked]
     
-    Cov --> CovComment[📊 Posts Coverage Table to PR]
+    Cov --> CovComment[ Posts Coverage Table to PR]
 
     %% AI Review Job
     Trigger --> AI[AI PR Review Workflow]
     
     AI --> BranchCheck{Target Branch?}
-    BranchCheck -- "main / master" --> O3[🧠 Model: o3<br>Deep reasoning & architecture]
-    BranchCheck -- "feature / dev" --> Codex[⚡ Model: gpt-5.1-codex-mini<br>Fast syntax & logic]
+    BranchCheck -- "main / master" --> O3[ Model: o3<br>Deep reasoning & architecture]
+    BranchCheck -- "feature / dev" --> Codex[ Model: gpt-5.1-codex-mini<br>Fast syntax & logic]
     
     O3 --> FileCheck{What was modified?}
     Codex --> FileCheck
@@ -45,10 +45,10 @@ graph TD
     API --> AIComment[🤖 Posts Code Review Comment on PR]
 
 ```
-
 ---
 
-##️ Workflow Breakdowns
+
+## Workflow Breakdowns
 
 ### 1. AI Pull Request Review
 
