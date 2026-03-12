@@ -41,6 +41,15 @@ INSTALLED_APPS = [
     'Inventory',
 ]
 
+# Conditionally load behave_django for BDD testing out of production/minimal CI scopes
+if DEBUG:
+    try:
+        import behave_django
+
+        INSTALLED_APPS.append("behave_django")
+    except ImportError:
+        pass
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
