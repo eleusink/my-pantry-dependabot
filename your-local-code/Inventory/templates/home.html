@@ -9,6 +9,7 @@
 
     <section class="panel-grid">
       <!-- My Ingredients -->
+      {#My Ingredients container is using drop down option to make th UI more friendly.#}
       <div class="panel expandable" id="ingredients-panel">
 	      <div class="panel-header">
 		      <h2>My Ingredients</h2>
@@ -18,9 +19,10 @@
 	      </div>
 
       	      <div class="panel-body">
-		      <form class="ingredient-form" onsubmit="addIngredient(event)">
-			      <input type="text" id="ingredient-name" placeholder="Item Name" required>
-			      <select id="ingredient-food-group" required>
+		      <form method="POST" class="ingredient-form">
+			      {% csrf_token %}
+			      <input type="text" id="ingredient-name" name="name" placeholder="Item Name" required>
+			      <select id="ingredient-food-group" name="food_group" required>
 				      <option value="">Select food group</option>
 				      <option value="Fruit">Fruit</option>
 				      <option value="Vegetable">Vegetable</option>
@@ -32,8 +34,8 @@
 				      <option value="Other">Other</option>
 			      </select>
 
-			      <input type="number" id="ingredient-amount" placeholder="Amount" min="1" required>
-			      <select id="ingredient-unit" required>
+			      <input type="number" id="ingredient-amount" name="amount" placeholder="Amount" min="1" required>
+			      <select id="ingredient-unit" name="unit" required>
 				      <option value="">Select unit</option>
 				      <option value="count">count</option>
 				      <option value="oz">oz</option>
@@ -51,7 +53,7 @@
 			      </select>
 
 			      <label for="ingredient-expiration">Expiration Date</label>
-			      <input type="date" id="ingredient-expiration" required>
+			      <input type="date" id="ingredient-expiration" name="expiration" required>
 			      <button type="submit">Add Item</button>
 		      </form>
 
@@ -132,6 +134,7 @@
   </div>
 </main>
 
+{# Script is used to accurately replicate the correct fields for each item and to correctly edit or delete each item.  #}
 <script>
 	function togglePanel(panelId) {
 		const panel = document.getElementById(panelId);
