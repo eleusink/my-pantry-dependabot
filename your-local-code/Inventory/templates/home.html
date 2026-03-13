@@ -9,6 +9,7 @@
 
     <section class="panel-grid">
       <!-- My Ingredients -->
+      {#My Ingredients container is using drop down option to make th UI more friendly.#}
       <div class="panel expandable" id="ingredients-panel">
 	      <div class="panel-header">
 		      <h2>My Ingredients</h2>
@@ -18,9 +19,10 @@
 	      </div>
 
       	      <div class="panel-body">
-		      <form class="ingredient-form" onsubmit="addIngredient(event)">
-			      <input type="text" id="ingredient-name" placeholder="Item Name" required>
-			      <select id="ingredient-food-group" required>
+		      <form method="POST" class="ingredient-form">
+			      {% csrf_token %}
+			      <input type="text" id="ingredient-name" name="name" placeholder="Item Name" required>
+			      <select id="ingredient-food-group" name="food_group" required>
 				      <option value="">Select food group</option>
 				      <option value="Fruit">Fruit</option>
 				      <option value="Vegetable">Vegetable</option>
@@ -32,8 +34,8 @@
 				      <option value="Other">Other</option>
 			      </select>
 
-			      <input type="number" id="ingredient-amount" placeholder="Amount" min="1" required>
-			      <select id="ingredient-unit" required>
+			      <input type="number" id="ingredient-amount" name="amount" placeholder="Amount" min="1" required>
+			      <select id="ingredient-unit" name="unit" required>
 				      <option value="">Select unit</option>
 				      <option value="count">count</option>
 				      <option value="oz">oz</option>
@@ -51,18 +53,19 @@
 			      </select>
 
 			      <label for="ingredient-expiration">Expiration Date</label>
-			      <input type="date" id="ingredient-expiration" required>
+			      <input type="date" id="ingredient-expiration" name="expiration" required>
 			      <button type="submit">Add Item</button>
 		      </form>
 
 
 		      <ul id="ingredient-list" class="ingredient-list">
+			      {% for item in items %}
 			      <li>
 				      <div class="ingredient-info">
-					      <span class="ingredient-name">Milk</span><br>
-					      Food Group: <span class="ingredient-group">Dairy</span><br>
-					      Quantity: <span class="ingredient-amount">1</span> <span class="ingredient-unit">carton</span><br>
-					      Expiration Date: <span class="ingredient-expiration">2026-03-20</span>
+					      <span class="ingredient-name">{{ item.name }}</span><br>
+					      Food Group: <span class="ingredient-group">{{ item.food_group }}</span><br>
+					      Quantity: <span class="ingredient-amount">{{ item.amount }}</span> <span class="ingredient-unit">{{ item.unit }}</span><br>
+					      Expiration Date: <span class="ingredient-expiration">{{ item.expiration }}</span>
 				      </div>
 
 				      <div class="item-actions">
@@ -70,19 +73,7 @@
 					      <button type="button" onclick="deleteIngredient(this)">Delete</button>
 				      </div>
 			      </li>
-			      <li>
-				      <div class="ingredient-info">
-					      <span class="ingredient-name">Eggs</span><br>
-					      Food Group: <span class="ingredient-group">Protein</span><br>
-					      Quantity: <span class="ingredient-amount">12</span> <span class="ingredient-unit">count</span><br>
-					      Expiration Date: <span class="ingredient-expiration">2026-03-18</span>
-				      </div>
-
-				      <div class="item-actions">
-					      <button type="button" onclick="editIngredient(this)">Edit</button>
-					      <button type="button" onclick="deleteIngredient(this)">Delete</button>
-				      </div>
-			      </li>
+			      {% endfor %}
 		      </ul>
 	      </div>
       </div>
@@ -132,6 +123,7 @@
   </div>
 </main>
 
+{# Script is used to accurately replicate the correct fields for each item and to correctly edit or delete each item.  #}
 <script>
 	function togglePanel(panelId) {
 		const panel = document.getElementById(panelId);
