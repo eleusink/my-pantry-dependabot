@@ -59,12 +59,13 @@
 
 
 		      <ul id="ingredient-list" class="ingredient-list">
+			      {% for item in items %}
 			      <li>
 				      <div class="ingredient-info">
-					      <span class="ingredient-name">Milk</span><br>
-					      Food Group: <span class="ingredient-group">Dairy</span><br>
-					      Quantity: <span class="ingredient-amount">1</span> <span class="ingredient-unit">carton</span><br>
-					      Expiration Date: <span class="ingredient-expiration">2026-03-20</span>
+					      <span class="ingredient-name">{{ item.name }}</span><br>
+					      Food Group: <span class="ingredient-group">{{ item.food_group }}</span><br>
+					      Quantity: <span class="ingredient-amount">{{ item.amount }}</span> <span class="ingredient-unit">{{ item.unit }}</span><br>
+					      Expiration Date: <span class="ingredient-expiration">{{ item.expiration }}</span>
 				      </div>
 
 				      <div class="item-actions">
@@ -72,19 +73,7 @@
 					      <button type="button" onclick="deleteIngredient(this)">Delete</button>
 				      </div>
 			      </li>
-			      <li>
-				      <div class="ingredient-info">
-					      <span class="ingredient-name">Eggs</span><br>
-					      Food Group: <span class="ingredient-group">Protein</span><br>
-					      Quantity: <span class="ingredient-amount">12</span> <span class="ingredient-unit">count</span><br>
-					      Expiration Date: <span class="ingredient-expiration">2026-03-18</span>
-				      </div>
-
-				      <div class="item-actions">
-					      <button type="button" onclick="editIngredient(this)">Edit</button>
-					      <button type="button" onclick="deleteIngredient(this)">Delete</button>
-				      </div>
-			      </li>
+			      {% endfor %}
 		      </ul>
 	      </div>
       </div>
