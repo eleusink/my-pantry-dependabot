@@ -34,19 +34,19 @@
 				      <option value="OT">Other</option>
 			      </select>
 
-			      <input type="number" id="ingredient-quantity" name="quantity" placeholder="Quantity" min="1" required>
+			      <input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="1" required>
 			      <select id="ingredient-unit" name="unit_measurement" required>
 				      <option value="">Select unit</option>
-					  <option value="TBSP">tbsp</option>
-				      <option value="TSP">tsp</option>
-					  <option value="CUP">cup(s)</option>
+				      <option value="A">count</option>
 				      <option value="OZ">oz</option>
-					  <option value="G">g</option>
+				      <option value="LB">lb</option>
+				      <option value="G">g</option>
 				      <option value="KG">kg</option>
-					  <option value="ML">ml</option>
+				      <option value="ML">ml</option>
 				      <option value="L">l</option>
-				      <option value="A">amount</option>
-					  <option value="LB">lb</option>
+				      <option value="CUP">cup(s)</option>
+				      <option value="TBSP">tbsp</option>
+				      <option value="TSP">tsp</option>
 				      <option value="BX">box(es)</option>
 				      <option value="BAGS">bag(s)</option>
 				      <option value="BTL">bottle(s)</option>
@@ -54,11 +54,9 @@
 				      <option value="CRT">carton(s)</option>
 			      </select>
 
-				  <label for="ingredient-date-obtained">Date Obtained</label>
-    <input type="date" id="ingredient-date-obtained" name="date_obtained" required>
+			      <label for="ingredient-expiration">Expiration Date</label>
+			      <input type="date" id="ingredient-expiration" name="date_expired" required>
 
-			      <label for="ingredient-date-expired">Expiration Date</label>
-			      <input type="date" id="ingredient-date-expired" name="date_expired" required>
 			      <button type="submit">Add Item</button>
 		      </form>
 
@@ -67,16 +65,20 @@
 			      {% for item in items %}
 			      <li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}">
 				      <div class="ingredient-info">
-					      <span class="ingredient-name"><b>{{ item.name }}</b></span><br>
-					      <b>Food Group:</b> <span class="ingredient-group">{{ item.food_group }}</span><br>
-					      <b>Quantity:</b> <span class="ingredient-quantity">{{ item.quantity }}</span> <span class="ingredient-unit">{{ item.unit_measurement }}</span><br>
-					      <b>Expiration Date:</b> <span class="ingredient-date-expired">{{ item.date_expired|date:"Y-m-d" }}</span>
+					      <span class="ingredient-name">{{ item.name }}</span><br>
+					      Food Group: <span class="ingredient-group">{{ item.get_food_group_display }}</span><br>
+					      Quantity: <span class="ingredient-amount">{{ item.quantity }}</span> <span class="ingredient-unit">{{ item.get_unit_measurement_display }}</span><br>
+					      Date Obtained: <span class="ingredient-obtained">{{ item.date_obtained }}</span><br>
+					      Expiration Date: <span class="ingredient-expiration">{{ item.date_expired }}</span>
 				      </div>
 
 				      <div class="item-actions">
-					      <button type="button" onclick="openEditModal(this)">Edit</button>
-					      <button type="button">Delete</button>
-						  <!-- onclick="deleteIngredient(this)", Phoenix code -->
+					      <button type="button" onclick="editIngredient(this)">Edit</button>
+
+					      <form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+						      {% csrf_token %}
+						      <button type="submit">Delete</button>
+					      </form>
 				      </div>
 			      </li>
 			      {% endfor %}
@@ -140,24 +142,40 @@
 	}
 
 
-	function validateExpirationDate(input) {
-        const today = new Date().toISOString().split("T")[0];
-        const value = input.value;
+	function addIngredient(event) {
+	       event.preventDefault();
 
-        if (value && value < today) {
-            input.setCustomValidity("Expiration date cannot be in the past.");
-            input.reportValidity();
-        } else {
-            input.setCustomValidity("");
-        }
-    }
+	       const name = document.getElementById('ingredient-name').value.trim();
+	       const foodGroup = document.getElementById('ingredient-food-group').value;
+	       const amount = document.getElementById('ingredient-amount').value;
+	       const unit = document.getElementById('ingredient-unit').value;
+	       const expiration = document.getElementById('ingredient-expiration').value;
+	       if (!name || !foodGroup || !amount || !unit || !expiration) return;
 
+	       const list = document.getElementById('ingredient-list');
+	       const li = document.createElement('li');
 
-	function deleteIngredient(button) {
-// Phoenix code
+	       li.innerHTML = `
+	       	  <div class="ingredient-info">
+		    <span class="ingredient-name">${name}</span><br>
+		    Food Group: <span class="ingredient-group">${foodGroup}</span><br>
+		    Quantity: <span class="ingredient-amount">${amount}</span> <span class="ingredient-unit">${unit}</span><br>
+		    Expiration Date: <span class="ingredient-expiration">${expiration}</span>
+		  </div>
+	          <div class="item-actions">
+	            <button type="button" onclick="editIngredient(this)">Edit</button>
+	          </div>
+	       `;
+
+	        list.appendChild(li);
+	        document.getElementById("ingredient-name").value = "";
+		document.getElementById("ingredient-food-group").value = "";
+		document.getElementById("ingredient-amount").value = "";
+		document.getElementById("ingredient-unit").value = "";
+		document.getElementById("ingredient-expiration").value = "";
 	}
 
-	function openEditModal(button) {
+	function editIngredient(button) {
 		const li = button.closest("li");
 		const ingredientId = li.dataset.ingredientId;
 		const dateObtained = li.dataset.dateObtained;
