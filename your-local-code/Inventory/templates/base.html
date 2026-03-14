@@ -25,6 +25,38 @@
 		</div>
 	</header>
 
+	<!-- Basic Modal - put specific mesages inside -->
+	 <div id="modal" class="modal">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h2 id="modal-title">Modal Title</h2>
+				<span class="close-btn" onclick="closeModal()">&times;</span>
+			</div>
+			<div class="modal-body" id="modal-body">
+				<!-- Put content here -->
+			</div>
+		</div>
+	</div>
+
+	<script>
+		// Basic Modal Scripts
+		function openModal(title, bodyContent) {
+			// Pass in scenario-specific modal content
+			document.getElementById('modal-title').textContent = title;
+			document.getElementById('modal-body').innerHTML = bodyContent;
+			document.getElementById('modal').style.display = 'flex';
+		}
+
+		function closeModal() {
+			document.getElementById('modal').style.display = 'none';
+		}
+
+		window.onclick = function(event) {
+			const modal = document.getElementById('modal');
+			if (event.target == modal) { closeModal(); }
+		}
+	</script>
+
 	{% block content %}{% endblock %}
 </body>
 </html>
