@@ -10,25 +10,38 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv(BASE_DIR / ".env")
+
 
 # Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
+# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-fallback-key-for-local-dev')
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    raise ImproperlyConfigured("The SECRET_KEY must not be empty.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
+
 #DEBUG = os.environ.get('DJANGO_DEBUG', 'FALSE') == 'True'  # Comment out before deploying
 DEBUG = True
+# Check whether we're in DEBUG mode (Render environment variable)
+#DEBUG = "RENDER" not in os.environ
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = []
 
+# When DEBUG is False, Django requires a suitable value for ALLOWED_HOSTS.
+RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # Application definition
 
@@ -41,6 +54,15 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'Inventory',
 ]
+
+# Conditionally load behave_django for BDD testing out of production/minimal CI scopes
+if DEBUG:
+    try:
+        import behave_django
+
+        INSTALLED_APPS.append("behave_django")
+    except ImportError:
+        pass
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -122,15 +144,15 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 # This tells Django where to find your root static files during development
-STATICFILES_DIRS = [
-    BASE_DIR / "static/",
-]
+STATIC_URL = "static/"
 
-# This is used by Render/Gunicorn to serve files in production 
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+if not DEBUG:
+    # Tell Django to copy static assets into a path called `staticfiles` (this is specific to Render)
+    STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-# Sets How Whitenoise handles file storage. 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    # Enable the WhiteNoise storage backend
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

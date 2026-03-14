@@ -1,5 +1,6 @@
 brotli==1.2.0
 Django==4.2.11
+dotenv==0.9.9
 asgiref==3.7.2
 sqlparse==0.4.4
 tzdata; sys_platform == 'win32'  # Common for cross-platform Django
