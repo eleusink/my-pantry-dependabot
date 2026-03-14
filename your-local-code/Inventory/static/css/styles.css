@@ -153,3 +153,78 @@ h2{ margin: 0; }
     grid-template-columns: 1fr;
   }
 }
+
+/* ================= MODALS ================= */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  border-radius: 7px;
+  border: 2px solid black;
+  box-shadow: 0 4px 16px rgba(255, 112, 0, 0.2);
+  max-width: 400px;
+  background: white;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between; /* Title left, close button right */
+  align-items: center; /* Vertically center both */
+  padding: 20px;
+  border-bottom: 1px solid #ddd;
+  background: #ff7a00;
+}
+
+.modal-header h2 {
+  margin: 0;
+  flex-grow: 1; /* Title takes up available space */
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column; /* Stack vertically */
+  justify-content: space-between; /* Title left, close button right */
+  align-items: center; /* Vertically center both */
+  padding: 10px;
+}
+
+/* Form Group - group modal elements into rows to control spacing */
+.form-group {
+  display: flex;
+  margin-bottom: 10px;
+  gap: 15;
+}
+
+.form-group label {
+  min-width: 120px;
+  font-weight: bold;
+}
+
+.form-group select, .form-group input {
+  flex: 1; /* adjust size to take up remaining space */
+  padding: 10px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.close-btn {
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.close-btn:hover {
+  color: black;
+}

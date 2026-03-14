@@ -24,53 +24,59 @@
 			      <input type="text" id="ingredient-name" name="name" placeholder="Item Name" required>
 			      <select id="ingredient-food-group" name="food_group" required>
 				      <option value="">Select food group</option>
-				      <option value="Fruit">Fruit</option>
-				      <option value="Vegetable">Vegetable</option>
-				      <option value="Grain">Grain</option>
-				      <option value="Protein">Protein</option>
-				      <option value="Dairy">Dairy</option>
-				      <option value="Snack">Snack</option>
-				      <option value="Beverage">Beverage</option>
-				      <option value="Other">Other</option>
+				      <option value="FR">Fruit</option>
+				      <option value="VE">Vegetable</option>
+				      <option value="GR">Grain</option>
+				      <option value="PR">Protein</option>
+				      <option value="DA">Dairy</option>
+				      <option value="SN">Snack</option>
+				      <option value="BE">Beverage</option>
+				      <option value="OT">Other</option>
 			      </select>
 
-			      <input type="number" id="ingredient-amount" name="amount" placeholder="Amount" min="1" required>
-			      <select id="ingredient-unit" name="unit" required>
+			      <input type="number" id="ingredient-quantity" name="quantity" placeholder="Quantity" min="1" required>
+			      <select id="ingredient-unit" name="unit_measurement" required>
 				      <option value="">Select unit</option>
-				      <option value="count">count</option>
-				      <option value="oz">oz</option>
-				      <option value="lb">lb</option>
-				      <option value="g">g</option>
-				      <option value="kg">kg</option>
-				      <option value="cup(s)">cup(s)</option>
-				      <option value="tbsp">tbsp</option>
-				      <option value="tsp">tsp</option>
-				      <option value="box(es)">box(es)</option>
-				      <option value="bag(s)">bag(s)</option>
-				      <option value="bottle(s)">bottle(s)</option>
-				      <option value="can(s)">can(s)</option>
-				      <option value="carton(s)">carton(s)</option>
+					  <option value="TBSP">tbsp</option>
+				      <option value="TSP">tsp</option>
+					  <option value="CUP">cup(s)</option>
+				      <option value="OZ">oz</option>
+					  <option value="G">g</option>
+				      <option value="KG">kg</option>
+					  <option value="ML">ml</option>
+				      <option value="L">l</option>
+				      <option value="A">amount</option>
+					  <option value="LB">lb</option>
+				      <option value="BX">box(es)</option>
+				      <option value="BAGS">bag(s)</option>
+				      <option value="BTL">bottle(s)</option>
+				      <option value="CAN">can(s)</option>
+				      <option value="CRT">carton(s)</option>
 			      </select>
 
-			      <label for="ingredient-expiration">Expiration Date</label>
-			      <input type="date" id="ingredient-expiration" name="expiration" required>
+				  <label for="ingredient-date-obtained">Date Obtained</label>
+    <input type="date" id="ingredient-date-obtained" name="date_obtained" required>
+
+			      <label for="ingredient-date-expired">Expiration Date</label>
+			      <input type="date" id="ingredient-date-expired" name="date_expired" required>
 			      <button type="submit">Add Item</button>
 		      </form>
 
 
 		      <ul id="ingredient-list" class="ingredient-list">
 			      {% for item in items %}
-			      <li>
+			      <li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}">
 				      <div class="ingredient-info">
-					      <span class="ingredient-name">{{ item.name }}</span><br>
-					      Food Group: <span class="ingredient-group">{{ item.food_group }}</span><br>
-					      Quantity: <span class="ingredient-amount">{{ item.amount }}</span> <span class="ingredient-unit">{{ item.unit }}</span><br>
-					      Expiration Date: <span class="ingredient-expiration">{{ item.expiration }}</span>
+					      <span class="ingredient-name"><b>{{ item.name }}</b></span><br>
+					      <b>Food Group:</b> <span class="ingredient-group">{{ item.food_group }}</span><br>
+					      <b>Quantity:</b> <span class="ingredient-quantity">{{ item.quantity }}</span> <span class="ingredient-unit">{{ item.unit_measurement }}</span><br>
+					      <b>Expiration Date:</b> <span class="ingredient-date-expired">{{ item.date_expired|date:"Y-m-d" }}</span>
 				      </div>
 
 				      <div class="item-actions">
-					      <button type="button" onclick="editIngredient(this)">Edit</button>
-					      <button type="button" onclick="deleteIngredient(this)">Delete</button>
+					      <button type="button" onclick="openEditModal(this)">Edit</button>
+					      <button type="button">Delete</button>
+						  <!-- onclick="deleteIngredient(this)", Phoenix code -->
 				      </div>
 			      </li>
 			      {% endfor %}
@@ -134,88 +140,100 @@
 	}
 
 
-	function addIngredient(event) {
-	       event.preventDefault();
+	function validateExpirationDate(input) {
+        const today = new Date().toISOString().split("T")[0];
+        const value = input.value;
 
-	       const name = document.getElementById('ingredient-name').value.trim();
-	       const foodGroup = document.getElementById('ingredient-food-group').value;
-	       const amount = document.getElementById('ingredient-amount').value;
-	       const unit = document.getElementById('ingredient-unit').value;
-	       const expiration = document.getElementById('ingredient-expiration').value;
-	       if (!name || !foodGroup || !amount || !unit || !expiration) return;
-
-	       const list = document.getElementById('ingredient-list');
-	       const li = document.createElement('li');
-
-	       li.innerHTML = `
-	       	  <div class="ingredient-info">
-		    <span class="ingredient-name">${name}</span><br>
-		    Food Group: <span class="ingredient-group">${foodGroup}</span><br>
-		    Quantity: <span class="ingredient-amount">${amount}</span> <span class="ingredient-unit">${unit}</span><br>
-		    Expiration Date: <span class="ingredient-expiration">${expiration}</span>
-		  </div>
-	          <div class="item-actions">
-	            <button type="button" onclick="editIngredient(this)">Edit</button>
-	            <button type="button" onclick="deleteIngredient(this)">Delete</button>
-	          </div>
-	       `;
-
-	        list.appendChild(li);
-	        document.getElementById("ingredient-name").value = "";
-		document.getElementById("ingredient-food-group").value = "";
-		document.getElementById("ingredient-amount").value = "";
-		document.getElementById("ingredient-unit").value = "";
-		document.getElementById("ingredient-expiration").value = "";
-	}
-
+        if (value && value < today) {
+            input.setCustomValidity("Expiration date cannot be in the past.");
+            input.reportValidity();
+        } else {
+            input.setCustomValidity("");
+        }
+    }
 
 
 	function deleteIngredient(button) {
-		const li = button.closest('li');
-	        li.remove();
-        }
+// Phoenix code
+	}
 
-
-	function editIngredient(button) {
+	function openEditModal(button) {
 		const li = button.closest("li");
+		const ingredientId = li.dataset.ingredientId;
+		const dateObtained = li.dataset.dateObtained;
 
-		const nameSpan = li.querySelector(".ingredient-name");
-		const groupSpan = li.querySelector(".ingredient-group");
-		const amountSpan = li.querySelector(".ingredient-amount");
-		const unitSpan = li.querySelector(".ingredient-unit");
-		const expirationSpan = li.querySelector(".ingredient-expiration");
+		// Current values
+		const name = li.querySelector(".ingredient-name").textContent;
+		const group = li.querySelector(".ingredient-group").textContent.trim();
+		const quantity = li.querySelector(".ingredient-quantity").textContent.trim();
+		const unit = li.querySelector(".ingredient-unit").textContent.trim();
+		const expiration = li.querySelector(".ingredient-date-expired").textContent.trim();
 
-		if (!nameSpan || !groupSpan || !amountSpan || !unitSpan || !expirationSpan) {
-			alert("Ingredient information not found.");
-			return;
-		}
+		const formContent = `
+		<form method="POST">
+			{% csrf_token %}
+			<input type="hidden" name="ingredient_id" value="${ingredientId}">
+			<input type="hidden" name="date_obtained" value="${dateObtained}">
+			<input type="hidden" name="action" value="edit">
 
-		const newName = prompt("Edit ingredient name:", nameSpan.textContent);
-		const newGroup = prompt("Edit food group:", groupSpan.textContent);
-		const newAmount = prompt("Edit amount:", amountSpan.textContent);
-		const newUnit = prompt("Edit unit:", unitSpan.textContent);
-		const newExpiration = prompt("Edit expiration date:", expirationSpan.textContent);
+			<div class="form-group">
+			<label for="edit-name">Item Name</label>
+			<input type="text" name="name" value="${name}" required>
+			</div>
 
+			<div class="form-group">
+			<label for="edit-food-group">Food Group</label>
+			<select name="food_group" required>
+				<option value="FR" ${group === 'FR' ? 'selected' : ''}>Fruit</option>
+				<option value="VE" ${group === 'VE' ? 'selected' : ''}>Vegetable</option>
+				<option value="GR" ${group === 'GR' ? 'selected' : ''}>Grain</option>
+				<option value="PR" ${group === 'PR' ? 'selected' : ''}>Protein</option>
+				<option value="DA" ${group === 'DA' ? 'selected' : ''}>Dairy</option>
+				<option value="SN" ${group === 'SN' ? 'selected' : ''}>Snack</option>
+				<option value="BE" ${group === 'BE' ? 'selected' : ''}>Beverage</option>
+				<option value="OT" ${group === 'OT' ? 'selected' : ''}>Other</option>
+			</select>
+			</div>
 
-		if (newName !== null && newName.trim() !== "") {
-			nameSpan.textContent = newName.trim();
-		}
+			<div class="form-group">
+			<label for="edit-quantity">Quantity</label>
+			<input type="number" name="quantity" value="${quantity}" min="1" required>
+			</div>
 
-		if (newGroup !== null && newGroup.trim() !== "") {
-		        groupSpan.textContent = newGroup.trim();
-		}
+			<div class="form-group">
+			<label for="edit-unit">Unit</label>
+			<select name="unit_measurement" required>
+				<option value="TBSP" ${unit === 'TBSP' ? 'selected' : ''}>tbsp</option>
+				<option value="TSP" ${unit === 'TSP' ? 'selected' : ''}>tsp</option>
+				<option value="CUP" ${unit === 'CUP' ? 'selected' : ''}>cup(s)</option>
+				<option value="OZ" ${unit === 'OZ' ? 'selected' : ''}>oz</option>
+				<option value="G" ${unit === 'G' ? 'selected' : ''}>g</option>
+				<option value="KG" ${unit === 'KG' ? 'selected' : ''}>kg</option>
+				<option value="ML" ${unit === 'ML' ? 'selected' : ''}>ml</option>
+				<option value="L" ${unit === 'L' ? 'selected' : ''}>l</option>
+				<option value="A" ${unit === 'A' ? 'selected' : ''}>amount</option>
+				<option value="LB" ${unit === 'LB' ? 'selected' : ''}>lb</option>
+				<option value="BX" ${unit === 'BX' ? 'selected' : ''}>box(es)</option>
+				<option value="BTL" ${unit === 'BTL' ? 'selected' : ''}>bottle(s)</option>
+				<option value="CAN" ${unit === 'CAN' ? 'selected' : ''}>can(s)</option>
+				<option value="CRT" ${unit === 'CRT' ? 'selected' : ''}>carton(s)</option>
+				<option value="BAGS" ${unit === 'BAGS' ? 'selected' : ''}>bag(s)</option>
+			</select>
+			</div>
 
-		if (newAmount !== null && newAmount.trim() !== "") {
-		        amountSpan.textContent = newAmount.trim();
-		}
+			<div class="form-group">
+				<label for="edit-expiration">Expiration Date</label>
+				<input type="date" name="date_expired" value="${expiration}" onchange="validateExpirationDate(this)" required>
+			</div>
 
-		if (newUnit !== null && newUnit.trim() !== "") {
-		        unitSpan.textContent = newUnit.trim();
-		}
+			<div class="modal-actions">
+			<button type="submit">Save Changes</button>
+			<button type="button" onclick="closeModal()">Cancel</button>
+			</div>
+		</form>
+		`;
 
-		if (newExpiration !== null && newExpiration.trim() !== "") {
-		        expirationSpan.textContent = newExpiration.trim();
-		}
+		openModal('Edit Ingredient', formContent);
 	}
 </script>
 {% endblock %}

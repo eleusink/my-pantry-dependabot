@@ -7,4 +7,7 @@ urlpatterns = [
     
     # /about/ page
     path('about/', views.about, name='about'),
+
+    # edit inside home page
+    path('ingredient/edit/', views.edit_ingredient, name='edit_ingredient'),
 ]
