@@ -32,9 +32,9 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 
 #DEBUG = os.environ.get('DJANGO_DEBUG', 'FALSE') == 'True'  # Comment out before deploying
-DEBUG = True
+#DEBUG = True
 # Check whether we're in DEBUG mode (Render environment variable)
-#DEBUG = "RENDER" not in os.environ
+DEBUG = "RENDER" not in os.environ
 
 ALLOWED_HOSTS = []
 
