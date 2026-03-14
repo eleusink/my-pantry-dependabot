@@ -62,6 +62,10 @@ class Ingredient(models.Model):
         default=Units.TEASPOON
     )
 
+    class Meta:
+        ordering = ['name']
+
+    @property
     def minutes_remaining(self):
         """Calculates time left on a food item."""
         today = timezone.now().date()
@@ -76,8 +80,9 @@ class Ingredient(models.Model):
             raise ValidationError("What exactly are you putting in?")
         if self.quantity is not None and self.quantity <= 0:
             raise ValidationError("Quantities can't be negative.")
-        if self.date_obtained and self.date_obtained > self.date_expired:
+        obtained_date = self.date_obtained or timezone.now().date()
+        if self.date_expired and obtained_date > self.date_expired:
             raise ValidationError("This item is already expired.")
 
     def __str__(self):
-        return f"{self.name}"
+        return f"{self.name} ({self.quantity} {self.get_unit_measurement_display()})"
