@@ -34,7 +34,7 @@ jobs:
 
       - name: Run Pytest
         env:
-          SECRET_KEY: dummy_secret_key_for_testing
+          DJANGO_SECRET_KEY: dummy_secret_key_for_testing
           DEBUG: true
         run: |
           cd your-local-code/
