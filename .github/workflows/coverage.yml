@@ -1,0 +1,60 @@
+name: Code Coverage
+
+on:
+  pull_request:
+    paths:
+      # NOTE: GitHub Actions does not support variables in the 'on' block. 
+      # You must manually update these paths when moving to a new repository.
+      - 'your-local-code/**'
+      - '!your-local-code/.venv/**'
+      - '!your-local-code/docs/**'
+      - '!your-local-code/static/**'
+      - '!your-local-code/**/migrations/**'
+      - '!your-local-code/**/__pycache__/**'
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write  # Required to post the comment on the PR
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r your-local-code/requirements.txt
+          pip install pytest pytest-django pytest-cov
+
+      - name: Run Coverage Check & Generate XML
+        env:
+          DJANGO_SETTINGS_MODULE: MyPantry.settings
+          SECRET_KEY: dummy_secret_key_for_testing
+          DEBUG: true
+        run: |
+          cd your-local-code
+          pytest --cov=Inventory --cov-report=xml --cov-fail-under=80 \
+            --cov-report=term-missing
+
+      - name: Post Coverage Comment
+        uses: MishaKav/pytest-coverage-comment@main
+        if: always() # This ensures the comment posts EVEN IF coverage is below 80% and the previous step fails!
+        with:
+          pytest-xml-coverage-path: ./your-local-code/coverage.xml
+          title: "Code Coverage Report"
+          badge-title: "Coverage"
+          hide-badge: false
+          hide-report: false
+          create-new-comment: false # Updates the existing comment on subsequent commits instead of spamming
+          unique-id-for-comment: code-coverage-report
