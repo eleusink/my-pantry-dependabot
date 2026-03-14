@@ -24,36 +24,39 @@
 			      <input type="text" id="ingredient-name" name="name" placeholder="Item Name" required>
 			      <select id="ingredient-food-group" name="food_group" required>
 				      <option value="">Select food group</option>
-				      <option value="Fruit">Fruit</option>
-				      <option value="Vegetable">Vegetable</option>
-				      <option value="Grain">Grain</option>
-				      <option value="Protein">Protein</option>
-				      <option value="Dairy">Dairy</option>
-				      <option value="Snack">Snack</option>
-				      <option value="Beverage">Beverage</option>
-				      <option value="Other">Other</option>
+				      <option value="FR">Fruit</option>
+				      <option value="VE">Vegetable</option>
+				      <option value="GR">Grain</option>
+				      <option value="PR">Protein</option>
+				      <option value="DA">Dairy</option>
+				      <option value="SN">Snack</option>
+				      <option value="BE">Beverage</option>
+				      <option value="OT">Other</option>
 			      </select>
 
-			      <input type="number" id="ingredient-amount" name="amount" placeholder="Amount" min="1" required>
-			      <select id="ingredient-unit" name="unit" required>
+			      <input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="1" required>
+			      <select id="ingredient-unit" name="unit_measurement" required>
 				      <option value="">Select unit</option>
-				      <option value="count">count</option>
-				      <option value="oz">oz</option>
-				      <option value="lb">lb</option>
-				      <option value="g">g</option>
-				      <option value="kg">kg</option>
-				      <option value="cup(s)">cup(s)</option>
-				      <option value="tbsp">tbsp</option>
-				      <option value="tsp">tsp</option>
-				      <option value="box(es)">box(es)</option>
-				      <option value="bag(s)">bag(s)</option>
-				      <option value="bottle(s)">bottle(s)</option>
-				      <option value="can(s)">can(s)</option>
-				      <option value="carton(s)">carton(s)</option>
+				      <option value="A">count</option>
+				      <option value="OZ">oz</option>
+				      <option value="LB">lb</option>
+				      <option value="G">g</option>
+				      <option value="KG">kg</option>
+				      <option value="ML">ml</option>
+				      <option value="L">l</option>
+				      <option value="CUP">cup(s)</option>
+				      <option value="TBSP">tbsp</option>
+				      <option value="TSP">tsp</option>
+				      <option value="BX">box(es)</option>
+				      <option value="BAGS">bag(s)</option>
+				      <option value="BTL">bottle(s)</option>
+				      <option value="CAN">can(s)</option>
+				      <option value="CRT">carton(s)</option>
 			      </select>
 
 			      <label for="ingredient-expiration">Expiration Date</label>
-			      <input type="date" id="ingredient-expiration" name="expiration" required>
+			      <input type="date" id="ingredient-expiration" name="date_expired" required>
+
 			      <button type="submit">Add Item</button>
 		      </form>
 
@@ -63,14 +66,19 @@
 			      <li>
 				      <div class="ingredient-info">
 					      <span class="ingredient-name">{{ item.name }}</span><br>
-					      Food Group: <span class="ingredient-group">{{ item.food_group }}</span><br>
-					      Quantity: <span class="ingredient-amount">{{ item.amount }}</span> <span class="ingredient-unit">{{ item.unit }}</span><br>
-					      Expiration Date: <span class="ingredient-expiration">{{ item.expiration }}</span>
+					      Food Group: <span class="ingredient-group">{{ item.get_food_group_display }}</span><br>
+					      Quantity: <span class="ingredient-amount">{{ item.quantity }}</span> <span class="ingredient-unit">{{ item.get_unit_measurement_display }}</span><br>
+					      Date Obtained: <span class="ingredient-obtained">{{ item.date_obtained }}</span><br>
+					      Expiration Date: <span class="ingredient-expiration">{{ item.date_expired }}</span>
 				      </div>
 
 				      <div class="item-actions">
 					      <button type="button" onclick="editIngredient(this)">Edit</button>
-					      <button type="button" onclick="deleteIngredient(this)">Delete</button>
+
+					      <form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+						      {% csrf_token %}
+						      <button type="submit">Delete</button>
+					      </form>
 				      </div>
 			      </li>
 			      {% endfor %}
@@ -156,7 +164,6 @@
 		  </div>
 	          <div class="item-actions">
 	            <button type="button" onclick="editIngredient(this)">Edit</button>
-	            <button type="button" onclick="deleteIngredient(this)">Delete</button>
 	          </div>
 	       `;
 
@@ -167,14 +174,6 @@
 		document.getElementById("ingredient-unit").value = "";
 		document.getElementById("ingredient-expiration").value = "";
 	}
-
-
-
-	function deleteIngredient(button) {
-		const li = button.closest('li');
-	        li.remove();
-        }
-
 
 	function editIngredient(button) {
 		const li = button.closest("li");
