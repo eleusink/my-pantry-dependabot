@@ -1,39 +1,47 @@
-from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.core.exceptions import ObjectDoesNotExist
+from django.shortcuts import get_object_or_404, redirect, render
+
 from .forms import IngredientForm
 from .models import Ingredient
 
-    # Create your views here.
+
 def home(request):
-    # """Renders the Home page.""
+    """Display all inventory items and handle creation of new items.
+
+    Returns:
+        HttpResponse: Renders home.html on GET with:
+            - form: Empty IngredientForm instance.
+            - items: QuerySet of all Ingredient records.
+        HttpResponseRedirect: Redirects to 'home' after a successful POST.
+        HttpResponse: Re-renders home.html with errors if POST data is invalid.
+
+    Accepted Methods:
+        GET: Returns the inventory list page.
+        POST: Validates and saves a new Ingredient record.
+
+    Redirects:
+        On successful POST, redirects to the 'home' route. Reloads page.
+    """
+    # Handle form submission
     if request.method == 'POST':
-        # Check if editing or adding, since both reload the page
-        action = request.POST.get('action')
+        form = IngredientForm(request.POST)
+        if form.is_valid():
+            form.save() # Save to database
+            return redirect('home') # Redirect to home, reloads page
+    else:
+        # Default form is blank
+        form = IngredientForm()
 
-        if action == 'edit':
-            return edit_ingredient(request)
-        elif action == 'delete':
-            return delete_ingredient(request)
-        else:
-            print("POST data:", request.POST) # Debugging Code
-            form = IngredientForm(request.POST)
-            if form.is_valid():
-                form.save()
-                messages.success(request, 'Ingredient successfully added')
-            else:
-                messages.error(request, 'Failed to add ingredient')
-                print("[ADD] Form errors:", form.errors) # Debugging Code
+    # Query ingredients from database
+    items = Ingredient.objects.all()
+    return render(request, 'home.html', {
+        'form': form,
+        'items': items,
+    })
 
-        return redirect('home')
-
-    # Send form and ingredients list to template
-    items= Ingredient.objects.all()
-    form = IngredientForm()
-    return render(request, 'home.html', {'form': form, 'items': items})
 
 def about(request):
-    """Renders the About page."""
+    # Render the about page.
     return render(request, 'about.html')
 
 
