@@ -8,6 +8,6 @@ urlpatterns = [
     # /about/ page
     path('about/', views.about, name='about'),
 
-    # edit inside home page
-    path('ingredient/edit/', views.edit_ingredient, name='edit_ingredient'),
+    # delete item
+    path('delete/<int:item_id>/', views.delete_item, name='delete_item'),
 ]
