@@ -91,7 +91,7 @@ def step_impl(context, count):
 def step_impl(context, quantity):
     context.client = Client()
     context.response = context.client.post(
-        reverse('edit_ingredient'),
+        reverse('edit_item'),
         {
             'ingredient_id': context.ingredient.id,
             'name': context.ingredient.name,
@@ -110,7 +110,7 @@ def step_impl(context, date):
     
     context.client = Client()
     context.response = context.client.post(
-        reverse('edit_ingredient'),
+        reverse('edit_item'),
         {
             'ingredient_id': context.ingredient.id,
             'name': context.ingredient.name,

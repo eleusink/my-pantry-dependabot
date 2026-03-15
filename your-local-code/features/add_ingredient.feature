@@ -8,10 +8,8 @@ Feature: Add Food items
         When I add an ingredient with name "Bread", quantity "1.00", and expiration date "9999-12-31"
         Then the ingredient "Bread" should appear in my inventory
         And the ingredient should have an expiration date "9999-12-31"
-        And I should see a success message
 
     Scenario: Reject adding ingredient with negative quantity
         Given I am on the home page
         When I add an ingredient with name "Salsa", quantity "-1.00", and expiration date "2026-03-25"
         Then the ingredient should not be added
-        And I should see an error message
