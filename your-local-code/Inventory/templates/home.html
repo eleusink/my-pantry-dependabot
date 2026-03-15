@@ -142,6 +142,31 @@
 	}
 
 
+	function validateNameCharacters(input) {
+		debugger;
+        const name = input.value;
+
+        if (!/^[A-Za-z]+$/.test(name)) {
+            input.setCustomValidity("Name field can only have letters.");
+            input.reportValidity();
+        } else {
+            input.setCustomValidity("");
+        }
+    }
+
+	function validateExpirationDate(input) {
+        const today = new Date().toISOString().split("T")[0];
+        const value = input.value;
+
+        if (value && value < today) {
+            input.setCustomValidity("Expiration date cannot be in the past.");
+            input.reportValidity();
+        } else {
+            input.setCustomValidity("");
+        }
+    }
+
+
 	function addIngredient(event) {
 	       event.preventDefault();
 
@@ -196,7 +221,7 @@
 
 			<div class="form-group">
 			<label for="edit-name">Item Name</label>
-			<input type="text" name="name" value="${name}" required>
+			<input type="text" name="name" value="${name}" onchange="validateNameCharacters(this)" required>
 			</div>
 
 			<div class="form-group">
