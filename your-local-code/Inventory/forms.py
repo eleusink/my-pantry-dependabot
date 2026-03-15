@@ -3,7 +3,7 @@ from .models import Ingredient
 import re
 from django.core.exceptions import ValidationError
 
-class IngredientForm (forms.ModelForm):
+class IngredientForm(forms.ModelForm):
     class Meta:
         model = Ingredient
         fields = ['name', 'quantity', 'date_obtained', 'date_expired', 'food_group', 'unit_measurement']
@@ -28,3 +28,4 @@ class IngredientForm (forms.ModelForm):
             raise ValidationError('Name must contain only letters and spaces')
         
         return name
+
