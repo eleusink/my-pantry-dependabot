@@ -46,7 +46,7 @@ class Ingredient(models.Model):
         help_text="The amount of the ingredient. (I.E., 5 apples, or 2 liters of milk)"
     )
     date_obtained = models.DateField(
-        default=now,
+        default=timezone.localdate,
         help_text="The date an ingredient is registered."
     )
     date_expired = models.DateField(
@@ -83,7 +83,7 @@ class Ingredient(models.Model):
             raise ValidationError("What exactly are you putting in?")
         if self.quantity is not None and self.quantity <= 0:
             raise ValidationError("Quantities can't be negative.")
-        obtained_date = self.date_obtained or timezone.now().date()
+        obtained_date = self.date_obtained or timezone.localdate()
 
         today = timezone.now().date()
         

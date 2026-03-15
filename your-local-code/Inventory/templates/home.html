@@ -54,6 +54,9 @@
 				      <option value="CRT">carton(s)</option>
 			      </select>
 
+			      <label for="ingredient-obtained">Date Obtained</label>
+			      <input type="date" id="ingredient-obtained" name="date_obtained" required>
+
 			      <label for="ingredient-expiration">Expiration Date</label>
 			      <input type="date" id="ingredient-expiration" name="date_expired" required>
 
@@ -63,7 +66,7 @@
 
 		      <ul id="ingredient-list" class="ingredient-list">
 			      {% for item in items %}
-			      <li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}">
+			      <li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.food_group }}" data-unit-measurement="{{ item.unit_measurement }}">
 				      <div class="ingredient-info">
 					      <span class="ingredient-name">{{ item.name }}</span><br>
 					      Food Group: <span class="ingredient-group">{{ item.get_food_group_display }}</span><br>
@@ -200,8 +203,6 @@
 		document.getElementById("ingredient-expiration").value = "";
 	}
 
-<<<<<<< HEAD
-
 
 	function deleteIngredient(button) {
 		if (!confirm("Are you sure you want to delete this item?")) {
@@ -212,9 +213,6 @@
 	        li.remove();
         }
 
-
-=======
->>>>>>> 4350d4e41c8185268d28f6a3ceb027e07c22b859
 	function editIngredient(button) {
 		const li = button.closest("li");
 		const ingredientId = li.dataset.ingredientId;
@@ -223,12 +221,12 @@
 		// Current values
 		const name = li.querySelector(".ingredient-name").textContent;
 		const group = li.querySelector(".ingredient-group").textContent.trim();
-		const quantity = li.querySelector(".ingredient-quantity").textContent.trim();
+		const quantity = li.querySelector(".ingredient-amount").textContent.trim();
 		const unit = li.querySelector(".ingredient-unit").textContent.trim();
-		const expiration = li.querySelector(".ingredient-date-expired").textContent.trim();
+		const expiration = li.querySelector(".ingredient-expiration").textContent.trim();
 
 		const formContent = `
-		<form method="POST">
+		<form method="POST" action="{% url 'edit_ingredient' %}">
 			{% csrf_token %}
 			<input type="hidden" name="ingredient_id" value="${ingredientId}">
 			<input type="hidden" name="date_obtained" value="${dateObtained}">
@@ -242,14 +240,14 @@
 			<div class="form-group">
 			<label for="edit-food-group">Food Group</label>
 			<select name="food_group" required>
-				<option value="FR" ${group === 'FR' ? 'selected' : ''}>Fruit</option>
-				<option value="VE" ${group === 'VE' ? 'selected' : ''}>Vegetable</option>
-				<option value="GR" ${group === 'GR' ? 'selected' : ''}>Grain</option>
-				<option value="PR" ${group === 'PR' ? 'selected' : ''}>Protein</option>
-				<option value="DA" ${group === 'DA' ? 'selected' : ''}>Dairy</option>
-				<option value="SN" ${group === 'SN' ? 'selected' : ''}>Snack</option>
-				<option value="BE" ${group === 'BE' ? 'selected' : ''}>Beverage</option>
-				<option value="OT" ${group === 'OT' ? 'selected' : ''}>Other</option>
+				<option value="FR" ${group === 'FRUIT' ? 'selected' : ''}>Fruit</option>
+				<option value="VE" ${group === 'VEGETABLE' ? 'selected' : ''}>Vegetable</option>
+				<option value="GR" ${group === 'GRAIN' ? 'selected' : ''}>Grain</option>
+				<option value="PR" ${group === 'PROTEIN' ? 'selected' : ''}>Protein</option>
+				<option value="DA" ${group === 'DAIRY' ? 'selected' : ''}>Dairy</option>
+				<option value="SN" ${group === 'SNACK' ? 'selected' : ''}>Snack</option>
+				<option value="BE" ${group === 'BEVERAGE' ? 'selected' : ''}>Beverage</option>
+				<option value="OT" ${group === 'OTHER' ? 'selected' : ''}>Other</option>
 			</select>
 			</div>
 
