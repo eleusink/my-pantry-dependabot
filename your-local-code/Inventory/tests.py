@@ -1,4 +1,4 @@
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -155,7 +155,7 @@ class InventoryViewTests(TestCase):
         """Edit """
         starting_count = Ingredient.objects.count()
 
-        response = self.client.post(reverse('edit_ingredient'), {
+        response = self.client.post(reverse('edit_item'), {
             'name': 'Apples',
             'quantity': '5.00',
             'date_expired': '2026-03-25',
@@ -171,7 +171,7 @@ class InventoryViewTests(TestCase):
         """Edit via POST successfully updates item"""
         original_name = self.item.name
 
-        response = self.client.post(reverse('edit_ingredient'), {
+        response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Apples',
             'quantity': '5.00',
@@ -188,7 +188,7 @@ class InventoryViewTests(TestCase):
     def test_edit_item_get_does_not_modify(self):
         """GET (not POST) doesn't modify database"""
         original_name = self.item.name
-        response = self.client.get(reverse('edit_ingredient'))
+        response = self.client.get(reverse('edit_item'))
 
         self.assertEqual(response.status_code, 302)
         self.item.refresh_from_db()
@@ -196,7 +196,7 @@ class InventoryViewTests(TestCase):
 
     def test_edit_nonexistent_item_graceful(self):
         """If requesting invalid or no ingredient id, don't crash the system"""
-        response = self.client.post(reverse('edit_ingredient'), {
+        response = self.client.post(reverse('edit_item'), {
             # 'ingredient_id': '',
             'name': 'Apples',
             'quantity': '5.00',
@@ -213,7 +213,7 @@ class InventoryViewTests(TestCase):
         original_quantity = self.item.quantity
         original_name = self.item.name
 
-        response = self.client.post(reverse('edit_ingredient'), {
+        response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Creamer',
             'quantity': '2',
@@ -248,7 +248,7 @@ class InventoryFormTests(TestCase):
         """Empty input doesn't modify database"""
         original_quantity = self.item.quantity
 
-        response = self.client.post(reverse('edit_ingredient'), {
+        response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Salsa',
             'quantity': '',
@@ -267,7 +267,7 @@ class InventoryFormTests(TestCase):
         """Non-alphabetical name doesn't modify database"""
         original_name = self.item.name
 
-        response = self.client.post(reverse('edit_ingredient'), {
+        response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': '5al5a',
             'quantity': '3',
@@ -286,7 +286,7 @@ class InventoryFormTests(TestCase):
         """Negative value won't modify database"""
         original_quantity = self.item.quantity
 
-        response = self.client.post(reverse('edit_ingredient'), {
+        response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Salsa',
             'quantity': '-3',
@@ -305,7 +305,7 @@ class InventoryFormTests(TestCase):
         """Missing information won't modify database"""
         original_obtained = self.item.date_obtained
 
-        response = self.client.post(reverse('edit_ingredient'), {
+        response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Salsa',
             'quantity': '3',
@@ -324,7 +324,7 @@ class InventoryFormTests(TestCase):
         """Date obtained after date expired won't modify database"""
         original_obtained = self.item.date_obtained
 
-        response = self.client.post(reverse('edit_ingredient'), {
+        response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Salsa',
             'quantity': '3',
@@ -344,7 +344,7 @@ class InventoryFormTests(TestCase):
         original_expired = self.item.date_expired
         yesterday = timezone.now().date() - datetime.timedelta(days=1)
 
-        response = self.client.post(reverse('edit_ingredient'), {
+        response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Salsa',
             'quantity': '3',
@@ -364,7 +364,7 @@ class InventoryFormTests(TestCase):
         today = timezone.now().date().isoformat()
         obtained = timezone.now().date() - datetime.timedelta(days=1)
     
-        response = self.client.post(reverse('edit_ingredient'), {
+        response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Milk',
             'quantity': '2.00',

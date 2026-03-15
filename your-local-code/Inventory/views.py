@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.core.exceptions import ObjectDoesNotExist
 
 from .forms import IngredientForm
 from .models import Ingredient
@@ -68,7 +69,27 @@ def edit_ingredient(request):
    
     return redirect('home')
 
-def delete_ingredient(request):
-    """Code from incoming merge"""
+def delete_ingredient(request, item_id):
+    """Delete an inventory item by ID.
 
+    Args:
+        request: Django HttpRequest object.
+        item_id: Integer primary key of the Ingredient to delete.
+
+    Returns:
+        HttpResponseRedirect: Redirects to 'home' after deletion attempt.
+
+    Accepted Methods:
+        POST: Deletes the matching Ingredient record.
+        GET: Does not delete and redirects to 'home'.
+
+    Redirects:
+        Always redirects to the 'home' route. Reloads page.
+    """
+    if request.method == 'POST':
+        # Find object of 404 if not found
+        item = get_object_or_404(Ingredient, id=item_id)
+        item.delete()
+        messages.success(request, 'Ingredient successfully deleted.')
+        return redirect('home')
     return redirect('home')
