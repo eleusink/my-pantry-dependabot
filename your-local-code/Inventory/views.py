@@ -22,7 +22,7 @@ def home(request):
                 form.save()
                 messages.success(request, 'Ingredient successfully added')
             else:
-                messages.error(request, 'Failed to add ingredient')
+                messages.error(request, 'ERROR: Failed to add ingredient')
                 print("[ADD] Form errors:", form.errors) # Debugging Code
 
         return redirect('home')
