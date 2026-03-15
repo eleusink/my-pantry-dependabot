@@ -1,9 +1,6 @@
-from django.conf import settings 
 from django.db import models
 from django.utils import timezone
-from django.utils.timezone import now
 from django.core.exceptions import ValidationError
-from django.utils.timezone import now
 
 
 class Ingredient(models.Model):
@@ -66,7 +63,6 @@ class Ingredient(models.Model):
         default=Units.TEASPOON
     )
 
-
     class Meta:
         ordering = ['name']
 
@@ -89,11 +85,10 @@ class Ingredient(models.Model):
         obtained_date = self.date_obtained or timezone.localdate()
 
         today = timezone.now().date()
-        
+
         if self.date_expired and self.date_expired < today:
             raise ValidationError("Expiration date cannot be in the past.")
 
-            
         if self.date_expired and obtained_date > self.date_expired:
             raise ValidationError("This item is already expired.")
 

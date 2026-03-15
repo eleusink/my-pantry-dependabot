@@ -1,4 +1,4 @@
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -181,6 +181,7 @@ class InventoryViewTests(TestCase):
             'date_obtained': '2026-03-05',
         })
 
+        self.assertEqual(response.status_code, 302)
         self.item.refresh_from_db()
         self.assertNotEqual(self.item.name, original_name)
         self.assertEqual(self.item.name, 'Apples')
@@ -228,8 +229,6 @@ class InventoryViewTests(TestCase):
         self.item.refresh_from_db()
         self.assertEqual(str(self.item.quantity), str(original_quantity))
         self.assertNotEqual(str(self.item.name), str(original_name))
-
-
 
 
 class InventoryFormTests(TestCase):
@@ -363,7 +362,7 @@ class InventoryFormTests(TestCase):
         """Invalid expiration dates (already passed) won't modify database"""
         today = timezone.now().date().isoformat()
         obtained = timezone.now().date() - datetime.timedelta(days=1)
-    
+
         response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Milk',

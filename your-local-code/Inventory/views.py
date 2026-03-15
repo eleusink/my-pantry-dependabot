@@ -26,8 +26,8 @@ def home(request):
     if request.method == 'POST':
         form = IngredientForm(request.POST)
         if form.is_valid():
-            form.save() # Save to database
-            return redirect('home') # Redirect to home, reloads page
+            form.save()  # Save to database
+            return redirect('home')  # Redirect to home, reloads page
     else:
         # Default form is blank
         form = IngredientForm()
@@ -47,7 +47,7 @@ def about(request):
 
 def edit_ingredient(request):
     """Editing Ingredients in modal, handles / cleans user input
-    
+
         Returns:
             home: redirects to home.html using URL path
 
@@ -72,11 +72,12 @@ def edit_ingredient(request):
 
         except ObjectDoesNotExist:
             messages.error(request, 'ERROR: Ingredient not found. It may have been deleted.')
-        except Exception as e:
+        except Exception:
             # print(f"Exception: {e}") # Debugging Code
             messages.error(request, 'ERROR: Unexpected error trying to edit ingredient.')
-   
+
     return redirect('home')
+
 
 def delete_ingredient(request, item_id):
     """Delete an inventory item by ID.

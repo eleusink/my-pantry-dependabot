@@ -4,6 +4,7 @@ import re
 from django.core.exceptions import ValidationError
 from django.utils.timezone import localdate
 
+
 class IngredientForm(forms.ModelForm):
     class Meta:
         model = Ingredient
@@ -27,9 +28,9 @@ class IngredientForm(forms.ModelForm):
 
         if not re.match(r'^[A-Za-z\s]+$', name):
             raise ValidationError('Name must contain only letters and spaces')
-        
+
         return name
-    
+
     def clean_date_expired(self):
         date_expired = self.cleaned_data.get('date_expired')
 

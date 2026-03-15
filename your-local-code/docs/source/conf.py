@@ -18,7 +18,7 @@ copyright = '2026, UCCS CS4300/5300 Team2'
 author = 'UCCS CS4300/5300 Team2'
 
 # Set the environment variables for Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'MyPanrty.settings') 
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'MyPanrty.settings')
 django.setup()
 
 # -- General configuration ---------------------------------------------------
@@ -34,7 +34,6 @@ extensions = [
 
 templates_path = ['_templates']
 exclude_patterns = []
-
 
 
 # -- Options for HTML output -------------------------------------------------
