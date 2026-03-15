@@ -1,6 +1,7 @@
 from django.conf import settings 
 from django.db import models
 from django.utils import timezone
+from django.utils.timezone import now
 from django.core.exceptions import ValidationError
 
 
@@ -45,7 +46,7 @@ class Ingredient(models.Model):
         help_text="The amount of the ingredient. (I.E., 5 apples, or 2 liters of milk)"
     )
     date_obtained = models.DateField(
-        auto_now_add=True,
+        default=now,
         help_text="The date an ingredient is registered."
     )
     date_expired = models.DateField(

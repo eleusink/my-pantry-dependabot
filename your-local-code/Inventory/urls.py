@@ -9,5 +9,8 @@ urlpatterns = [
     path('about/', views.about, name='about'),
 
     # delete item
-    path('delete/<int:item_id>/', views.delete_item, name='delete_item'),
+    path('delete/<int:item_id>/', views.delete_ingredient, name='delete_item'),
+
+    # edit inside home page
+    path('ingredient/edit/', views.edit_ingredient, name='edit_item'),
 ]

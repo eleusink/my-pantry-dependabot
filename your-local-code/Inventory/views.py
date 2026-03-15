@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.core.exceptions import ObjectDoesNotExist
 
 from .forms import IngredientForm
 from .models import Ingredient
@@ -68,7 +69,7 @@ def edit_ingredient(request):
    
     return redirect('home')
 
-def delete_ingredient(request):
+def delete_ingredient(request, item_id):
     """Code from incoming merge"""
 
     return redirect('home')
