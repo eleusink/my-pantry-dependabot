@@ -82,7 +82,12 @@ class Ingredient(models.Model):
             raise ValidationError("What exactly are you putting in?")
         if self.quantity is not None and self.quantity <= 0:
             raise ValidationError("Quantities can't be negative.")
+            
         obtained_date = self.date_obtained or timezone.now().date()
+        today = timezone.now().date()
+        if self.date_expired and self.date_expired < today:
+            raise ValidationError("Expiration date cannot be in the past.")
+        obtained_date = self.date_obtained or today
         if self.date_expired and obtained_date > self.date_expired:
             raise ValidationError("This item is already expired.")
 

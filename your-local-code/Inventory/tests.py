@@ -1,4 +1,4 @@
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone

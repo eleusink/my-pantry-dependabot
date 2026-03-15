@@ -16,3 +16,4 @@ class IngredientForm(forms.ModelForm):
             raise ValidationError('Name must contain only letters and spaces')
         
         return name
+
