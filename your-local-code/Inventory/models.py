@@ -1,6 +1,7 @@
 from django.conf import settings 
 from django.db import models
 from django.utils import timezone
+from django.utils.timezone import now
 from django.core.exceptions import ValidationError
 from django.utils.timezone import now
 
@@ -47,6 +48,7 @@ class Ingredient(models.Model):
     )
     date_obtained = models.DateField(
         default=timezone.localdate,
+
         help_text="The date an ingredient is registered."
     )
     date_expired = models.DateField(
@@ -83,6 +85,7 @@ class Ingredient(models.Model):
             raise ValidationError("What exactly are you putting in?")
         if self.quantity is not None and self.quantity <= 0:
             raise ValidationError("Quantities can't be negative.")
+
         obtained_date = self.date_obtained or timezone.localdate()
 
         today = timezone.now().date()
@@ -90,6 +93,7 @@ class Ingredient(models.Model):
         if self.date_expired and self.date_expired < today:
             raise ValidationError("Expiration date cannot be in the past.")
 
+            
         if self.date_expired and obtained_date > self.date_expired:
             raise ValidationError("This item is already expired.")
 

@@ -226,7 +226,7 @@
 		const expiration = li.querySelector(".ingredient-expiration").textContent.trim();
 
 		const formContent = `
-		<form method="POST" action="{% url 'edit_ingredient' %}">
+		<form method="POST" action="{% url 'edit_item' %}">
 			{% csrf_token %}
 			<input type="hidden" name="ingredient_id" value="${ingredientId}">
 			<input type="hidden" name="date_obtained" value="${dateObtained}">

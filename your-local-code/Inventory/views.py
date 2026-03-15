@@ -46,7 +46,17 @@ def about(request):
 
 
 def edit_ingredient(request):
-    """Editing Ingredients in modal, handles / cleans user input"""
+    """Editing Ingredients in modal, handles / cleans user input
+    
+        Returns:
+            home: redirects to home.html using URL path
+
+        Accepted Methods:
+            POST: Validates and saves an edited Ingredient record.
+
+        Redirects:
+            On successful POST, redirects to the 'home' route. Reloads page.
+    """
     if request.method == 'POST':
         ingredient_id = request.POST.get('ingredient_id')
 
@@ -69,8 +79,27 @@ def edit_ingredient(request):
     return redirect('home')
 
 def delete_ingredient(request, item_id):
-    item = get_object_or_404(Ingredient, id=item_id)
-    if request.method == "POST":
-        item.delete()    
+    """Delete an inventory item by ID.
+
+    Args:
+        request: Django HttpRequest object.
+        item_id: Integer primary key of the Ingredient to delete.
+
+    Returns:
+        HttpResponseRedirect: Redirects to 'home' after deletion attempt.
+
+    Accepted Methods:
+        POST: Deletes the matching Ingredient record.
+        GET: Does not delete and redirects to 'home'.
+
+    Redirects:
+        Always redirects to the 'home' route. Reloads page.
+    """
+    if request.method == 'POST':
+        # Find object of 404 if not found
+        item = get_object_or_404(Ingredient, id=item_id)
+        item.delete()
+        messages.success(request, 'Ingredient successfully deleted.')
+        return redirect('home')
 
     return redirect('home')

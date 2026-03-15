@@ -11,6 +11,7 @@ urlpatterns = [
     # delete item
     path('delete/<int:item_id>/', views.delete_ingredient, name='delete_item'),
 
-    # edit item
-    path('edit/', views.edit_ingredient, name='edit_ingredient'),
+
+    # edit inside home page
+    path('ingredient/edit/', views.edit_ingredient, name='edit_item'),
 ]
