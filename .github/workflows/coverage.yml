@@ -40,7 +40,7 @@ jobs:
       - name: Run Coverage Check & Generate XML
         env:
           DJANGO_SETTINGS_MODULE: MyPantry.settings
-          SECRET_KEY: dummy_secret_key_for_testing
+          DJANGO_SECRET_KEY: dummy_secret_key_for_testing
           DEBUG: true
         run: |
           cd your-local-code
