@@ -47,7 +47,17 @@ def about(request):
 
 
 def edit_ingredient(request):
-    """Editing Ingredients in modal, handles / cleans user input"""
+    """Editing Ingredients in modal, handles / cleans user input
+    
+        Returns:
+            home: redirects to home.html using URL path
+
+        Accepted Methods:
+            POST: Validates and saves an edited Ingredient record.
+
+        Redirects:
+            On successful POST, redirects to the 'home' route. Reloads page.
+    """
     if request.method == 'POST':
         ingredient_id = request.POST.get('ingredient_id')
 
