@@ -61,19 +61,6 @@ def edit_ingredient(request):
     return redirect('home')
 
 def delete_ingredient(request):
-    """Delete ingredient from database"""
-    if request.method == 'POST':
-        ingredient_id = request.POST.get('ingredient_id')
-        
-        try:
-            ingredient = Ingredient.objects.get(id=ingredient_id)
-            ingredient_name = ingredient.name
-            ingredient.delete()
-            messages.success(request, 'Ingredient successfully removed')
-        except ObjectDoesNotExist:
-            messages.error(request, 'ERROR: Ingredient not found. It may have been deleted.')
-        except Exception as e:
-            print(f"Exception: {e}") # Debugging Code
-            messages.error(request, 'ERROR: Unexpected error trying to delete ingredient.')
+    """Code from incoming merge"""
 
     return redirect('home')
