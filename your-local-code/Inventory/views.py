@@ -1,7 +1,6 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.core.exceptions import ObjectDoesNotExist
-
 from .forms import IngredientForm
 from .models import Ingredient
 
@@ -102,4 +101,5 @@ def delete_ingredient(request, item_id):
         item.delete()
         messages.success(request, 'Ingredient successfully deleted.')
         return redirect('home')
+
     return redirect('home')
