@@ -8,6 +8,12 @@ urlpatterns = [
     # /about/ page
     path('about/', views.about, name='about'),
 
+    # signup page
+    path("signup/", views.signup, name="signup"),
+
+    # account settings page (Edit settings)
+    path("account/", views.account_settings, name="account_settings"),
+
     # delete item
     path('delete/<int:item_id>/', views.delete_ingredient, name='delete_item'),
 

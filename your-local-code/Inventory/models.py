@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.conf import settings
 
 
 class Ingredient(models.Model):
@@ -61,6 +62,11 @@ class Ingredient(models.Model):
         max_length=4,
         choices=Units.choices,
         default=Units.TEASPOON
+    )
+    user = models.ForeignKey(
+            settings.AUTH_USER_MODEL,
+            on_delete=models.CASCADE,
+            related_name="ingredients"
     )
 
     class Meta:
