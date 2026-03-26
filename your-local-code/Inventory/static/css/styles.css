@@ -52,21 +52,32 @@ h2{ margin: 0; }
   gap: 1rem;
 }
 
+.nav form{
+	display: inline;
+	margin: 0;
+}
+
 .nav-link{
   color: white;
   font-weight: 600;
   text-decoration: none;
   padding: 6px 14px;
   border-radius: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
 }
 
 .nav-link:hover{
-  background: rgba(255,255,255,0.2);
+  background: none;
+  color: white;
 }
 
 .nav-link:active{
-  background: white;
-  color: #ff7a00;
+  background: none;
+  color: white;
 }
 
 /* ================= DASHBOARD LAYOUT ================= */

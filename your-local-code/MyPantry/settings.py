@@ -80,7 +80,7 @@ ROOT_URLCONF = 'MyPantry.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "templates"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -92,6 +92,10 @@ TEMPLATES = [
         },
     },
 ]
+
+LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "login"
+LOGIN_URL = "login"
 
 WSGI_APPLICATION = 'MyPantry.wsgi.application'
 
@@ -157,4 +161,8 @@ if not DEBUG:
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
+# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Email settings (for development)
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

@@ -1,10 +1,14 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.core.exceptions import ObjectDoesNotExist
-from .forms import IngredientForm
+from .forms import IngredientForm, CustomUserChangeForm
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import login
+from django.contrib.auth.forms import UserCreationForm
 from .models import Ingredient
 
 
+@login_required
 def home(request):
     """Display all inventory items and handle creation of new items.
 
@@ -26,18 +30,33 @@ def home(request):
     if request.method == 'POST':
         form = IngredientForm(request.POST)
         if form.is_valid():
-            form.save()  # Save to database
+            item = form.save(commit=False)
+            item.user = request.user
+            item.save()
             return redirect('home')  # Redirect to home, reloads page
     else:
         # Default form is blank
         form = IngredientForm()
 
     # Query ingredients from database
-    items = Ingredient.objects.all()
+    items = Ingredient.objects.filter(user=request.user)
     return render(request, 'home.html', {
         'form': form,
         'items': items,
     })
+
+def signup(request):
+    if request.method == "POST":
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect("home")
+
+    else:
+        form = UserCreationForm()
+        
+    return render(request, "registration/signup.html", {"form": form})
 
 
 def about(request):
@@ -45,6 +64,7 @@ def about(request):
     return render(request, 'about.html')
 
 
+@login_required
 def edit_ingredient(request):
     """Editing Ingredients in modal, handles / cleans user input
 
@@ -61,10 +81,12 @@ def edit_ingredient(request):
         ingredient_id = request.POST.get('ingredient_id')
 
         try:
-            ingredient = Ingredient.objects.get(id=ingredient_id)
+            ingredient = Ingredient.objects.get(id=ingredient_id, user=request.user)
             form = IngredientForm(request.POST, instance=ingredient)
             if form.is_valid():
-                form.save()
+                updated_item = form.save(commit=False)
+                updated_item.user = request.user
+                updated_item.save()
                 messages.success(request, 'Ingredient successfully updated')
             else:
                 # print("[EDIT] FORM ERROR:", form.errors) # Debugging Code
@@ -79,6 +101,7 @@ def edit_ingredient(request):
     return redirect('home')
 
 
+@login_required
 def delete_ingredient(request, item_id):
     """Delete an inventory item by ID.
 
@@ -98,9 +121,23 @@ def delete_ingredient(request, item_id):
     """
     if request.method == 'POST':
         # Find object of 404 if not found
-        item = get_object_or_404(Ingredient, id=item_id)
+        item = get_object_or_404(Ingredient, id=item_id, user=request.user)
         item.delete()
         messages.success(request, 'Ingredient successfully deleted.')
         return redirect('home')
 
     return redirect('home')
+
+
+@login_required
+def account_settings(request):
+    if request.method == "POST":
+        form = CustomUserChangeForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect("home")
+
+    else:
+        form = CustomUserChangeForm(instance=request.user)
+
+    return render(request, "account_settings.html", {"form": form})
