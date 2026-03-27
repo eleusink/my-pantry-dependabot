@@ -1,4 +1,10 @@
 [flake8]
 ignore = E501, W503
-exclude = migrations, .venv, docs, api, static, tests, features, __pycache__, .pytest_cache, htmlcov
+# docs and api are Sphinx documentation folders
+# static is for images and css during live deployment (empty for testing)
+# features is for the feature files used by behave
+# __pycache__ is for the python cache
+# .pytest_cache is for the pytest cache
+# htmlcov is for the coverage reports
+exclude = migrations, .venv, docs, api, static, features, __pycache__, .pytest_cache, htmlcov
 max-line-length = 88
