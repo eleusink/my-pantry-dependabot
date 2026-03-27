@@ -1,4 +1,4 @@
 [flake8]
 ignore = E501, W503
-exclude = migrations, .venv
+exclude = migrations, .venv, docs, api, static, tests, features, __pycache__, .pytest_cache, htmlcov
 max-line-length = 88
