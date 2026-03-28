@@ -5,6 +5,6 @@
 -r requirements-flake8.txt
 -r requirements-pytest.txt
 
-# --- Web Testing/API Utilities (Optional but recommended) ---
+# --- Web Testing/API Utilities (Recommended) ---
 beautifulsoup4==4.14.3
 requests==2.32.5
