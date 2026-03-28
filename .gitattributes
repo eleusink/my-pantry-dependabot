@@ -1,4 +1,4 @@
 # .gitattributes
 
 # Force Git to treat all .txt files as text and show diffs
-*.txt text diff
+*.txt text
