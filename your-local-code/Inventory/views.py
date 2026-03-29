@@ -4,6 +4,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .utils import fetch_product_info
+from .utils import fetch_product_info, normalize_unit, ProductNotFoundError, ProductAPIError
 from django.core.exceptions import ObjectDoesNotExist
 from .forms import IngredientForm, CustomUserChangeForm
 from django.contrib.auth.decorators import login_required
@@ -177,10 +178,19 @@ def product_info_api(request) -> Response:
         
     product_data = fetch_product_info(barcode)
     
-    if product_data:
-        return Response(product_data, status=status.HTTP_200_OK)
-    else:
+    try:
+        product_data = fetch_product_info(barcode)
+        
+        extracted_data = {
+            "name": product_data.get("product_name_en"),
+            "quantity": product_data.get("product_quantity"),
+            "unit_measurement": normalize_unit(product_data.get("product_quantity_unit")),
+        }
+    except ProductNotFoundError as e:
         return Response(
             {"error": "Product not found or invalid barcode."},
+            {"error": str(e)},
             status=status.HTTP_404_NOT_FOUND
         )
+    except ProductAPIError as e:
+        return Response(
