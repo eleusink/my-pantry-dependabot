@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Home{% endblock %}
 
@@ -19,7 +20,14 @@
 	      </div>
 
       	      <div class="panel-body">
-		      <form method="POST" class="ingredient-form">
+			  <!-- Barcode Scanner UI -->
+			  <div id="barcode-scanner-container" style="margin-bottom: 20px; text-align: center;">
+				  <button type="button" id="start-scan-btn" style="padding: 8px 16px; margin-bottom: 10px;">📷 Scan Barcode</button>
+				  <p id="scanner-status" style="display: none; color: #555; font-style: italic; margin: 5px 0; font-size: 0.9em;"></p>
+				  <div id="reader" style="width: 100%; max-width: 400px; margin: 0 auto; display: none; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
+			  </div>
+
+		      <form method="POST" class="ingredient-form" id="add-ingredient-form">
 			      {% csrf_token %}
 			      <input type="text" id="ingredient-name" name="name" placeholder="Item Name" required>
 			      <select id="ingredient-food-group" name="food_group" required>
@@ -34,7 +42,7 @@
 				      <option value="OT">Other</option>
 			      </select>
 
-			      <input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="1" required>
+			      <input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="0.01" step="0.01" required>
 			      <select id="ingredient-unit" name="unit_measurement" required>
 				      <option value="">Select unit</option>
 				      <option value="A">count</option>
@@ -55,7 +63,7 @@
 			      </select>
 
 			      <label for="ingredient-obtained">Date Obtained</label>
-			      <input type="date" id="ingredient-obtained" name="date_obtained" required>
+			      <input type="date" id="ingredient-obtained" name="date_obtained" value="{% now 'Y-m-d' %}" required>
 
 			      <label for="ingredient-expiration">Expiration Date</label>
 			      <input type="date" id="ingredient-expiration" name="date_expired" required>
@@ -291,5 +299,90 @@
 
 		openModal('Edit Ingredient', formContent);
 	}
+</script>
+
+<script src="{% static 'js/html5-qrcode.min.js' %}"></script>
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		const startBtn = document.getElementById('start-scan-btn');
+		const readerDiv = document.getElementById('reader');
+		const statusText = document.getElementById('scanner-status');
+		let html5QrcodeScanner = null;
+
+		startBtn.addEventListener('click', function(event) {
+			event.preventDefault(); // ensure mobile devices don't interpret as submit
+			if (html5QrcodeScanner) return;
+			
+			readerDiv.style.display = 'block';
+			readerDiv.style.pointerEvents = 'auto'; // reset in case we locked it
+			statusText.style.display = 'block';
+			statusText.textContent = "Initializing camera...";
+			statusText.style.color = "#555";
+			startBtn.style.display = 'none';
+
+			// Initialize the scanner UI
+			html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 150} }, false);
+			
+			html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+		});
+
+		function onScanSuccess(decodedText, decodedResult) {
+			statusText.textContent = `Searching for product... (Barcode: ${decodedText})`;
+			statusText.style.color = "blue";
+			
+			// Lock the UI container immediately to prevent ghost canvas layers from intercepting clicks below it!
+			readerDiv.style.pointerEvents = 'none';
+
+			// Stop scanner asynchronously. Synchronous clear() on iOS WebRTC often permanently locks the DOM thread or leaves a transparent video overlay catching tap events on the Date inputs beneath it (appearing greyed out).
+			if (html5QrcodeScanner) {
+				if (typeof html5QrcodeScanner.pause === "function") {
+					html5QrcodeScanner.pause(true);
+				}
+				setTimeout(() => {
+					html5QrcodeScanner.clear().then(() => {
+						readerDiv.style.display = 'none';
+						html5QrcodeScanner = null;
+					}).catch(error => console.error("Failed to clear scanner.", error));
+				}, 500);
+			}
+
+			// Fetch product data from API
+			fetch(`/api/product/?barcode=${decodedText}`)
+				.then(response => {
+					if (!response.ok) {
+						return response.json().then(err => { throw new Error(err.error || `HTTP ${response.status}`); });
+					}
+					return response.json();
+				})
+				.then(data => {
+					statusText.textContent = "Product loaded successfully. Feel free to edit below.";
+					statusText.style.color = "green";
+					startBtn.style.display = 'inline-block';
+					
+					// Populate the Add Item form cleanly
+					const safeName = (data.name || "").replace(/[\r\n]/g, ""); // Strip hidden submit characters from barcodes
+					if(safeName) document.getElementById('ingredient-name').value = safeName;
+					if(data.quantity) document.getElementById('ingredient-amount').value = data.quantity;
+					if(data.unit_measurement) document.getElementById('ingredient-unit').value = data.unit_measurement;
+					
+					// Convenience: Auto-fill Date Obtained to "today" if it's empty
+					const dateObtainedInput = document.getElementById('ingredient-obtained');
+					if (dateObtainedInput && !dateObtainedInput.value) {
+						dateObtainedInput.value = new Date().toISOString().split('T')[0];
+					}
+
+					setTimeout(() => { statusText.style.display = 'none'; }, 4000);
+				})
+				.catch(err => {
+					statusText.textContent = `Error: ${err.message}`;
+					statusText.style.color = "red";
+					startBtn.style.display = 'inline-block';
+				});
+		}
+
+		function onScanFailure(error) {
+			// ignore ongoing unreadable frames
+		}
+	});
 </script>
 {% endblock %}

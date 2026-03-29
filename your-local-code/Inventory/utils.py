@@ -62,6 +62,26 @@ class ProductAPIError(Exception):
     """Raised when there is a timeout or connection issue with the external API."""
     pass
 
+def normalize_quantity(value: str | int | float | None) -> float | None:
+    """Normalizes the quantity from Open Food Facts into a float.
+
+    Converts raw API string/int/float data into a proper Python float,
+    rounded to two decimal places to respect the database constraints 
+    (max_digits=10, decimal_places=2).
+
+    Args:
+        value: The raw quantity data from the Open Food Facts API.
+
+    Returns:
+        The cleaned float rounded to 2 decimal places, or None if missing/invalid.
+    """
+    if not value:
+        return None
+    try:
+        return round(float(value), 2)
+    except (ValueError, TypeError):
+        return None
+
 def fetch_product_info(barcode: str, timeout: int = 5) -> dict:
     """Fetches product information from the Open Food Facts API v2 staging environment.
     
@@ -94,9 +114,12 @@ def fetch_product_info(barcode: str, timeout: int = 5) -> dict:
         
         if data.get("status_verbose") == "product found":
             product = data.get("product", {})
+            
+            raw_quantity = product.get("product_quantity") or product.get("serving_quantity")
+            
             return {
                 "product_name_en": product.get("product_name_en") or product.get("product_name"),
-                "product_quantity": product.get("product_quantity") or product.get("serving_quantity"),
+                "product_quantity": normalize_quantity(raw_quantity),
                 "product_quantity_unit": product.get("product_quantity_unit") or product.get("serving_quantity_unit"),
                 "serving_size": product.get("serving_size"),
             }
@@ -110,10 +133,3 @@ def fetch_product_info(barcode: str, timeout: int = 5) -> dict:
     except ValueError:
         raise ProductAPIError("Received malformed JSON data from the Open Food Facts API.")
 
-if __name__ == "__main__":
-    # Test condition provided by user
-    test_upc = "041192108228"
-    print(f"Testing fetch_product_info with UPC: {test_upc}")
-    result = fetch_product_info(test_upc)
-    print("Parsed JSON data returned:")
-    print(result)
