@@ -1,5 +1,9 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from .utils import fetch_product_info
 from django.core.exceptions import ObjectDoesNotExist
 from .forms import IngredientForm, CustomUserChangeForm
 from django.contrib.auth.decorators import login_required
@@ -141,3 +145,42 @@ def account_settings(request):
         form = CustomUserChangeForm(instance=request.user)
 
     return render(request, "account_settings.html", {"form": form})
+
+
+@api_view(['GET', 'POST'])
+def product_info_api(request) -> Response:
+    """Fetches product info from Open Food Facts based on a given barcode.
+
+    This API view acts as a backend proxy between the client and the Open 
+    Food Facts API. Processing this on the backend helps avoid client-side 
+    CORS restrictions and safely encapsulates external API interactions. It 
+    accepts the barcode either via a GET query parameter or a POST JSON body.
+
+    Args:
+        request: The incoming HTTP request containing the barcode data.
+
+    Returns:
+        An HTTP Response containing either the product data dictionary or 
+        an error message with the appropriate HTTP status code.
+    """
+    barcode = None
+    if request.method == 'GET':
+        barcode = request.GET.get('barcode')
+    elif request.method == 'POST':
+        barcode = request.data.get('barcode')
+        
+    if not barcode:
+        return Response(
+            {"error": "Please provide a 'barcode' parameter."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+        
+    product_data = fetch_product_info(barcode)
+    
+    if product_data:
+        return Response(product_data, status=status.HTTP_200_OK)
+    else:
+        return Response(
+            {"error": "Product not found or invalid barcode."},
+            status=status.HTTP_404_NOT_FOUND
+        )
