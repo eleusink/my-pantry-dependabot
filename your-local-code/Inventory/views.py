@@ -107,7 +107,7 @@ def edit_ingredient(request):
 
 @login_required
 def delete_ingredient(request, item_id):
-    """Delete an inventory item by ID.
+    """Delete an inventory item by ID
 
     Args:
         request: Django HttpRequest object.
@@ -184,6 +184,8 @@ def product_info_api(request) -> Response:
             "quantity": product_data.get("product_quantity"),
             "unit_measurement": normalize_unit(product_data.get("product_quantity_unit")),
         }
+        return Response(extracted_data, status=status.HTTP_200_OK)
+        
     except ProductNotFoundError as e:
         return Response(
             {"error": str(e)},
@@ -191,3 +193,6 @@ def product_info_api(request) -> Response:
         )
     except ProductAPIError as e:
         return Response(
+            {"error": str(e)},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
