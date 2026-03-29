@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, serializers
 from .utils import fetch_product_info, normalize_unit, ProductNotFoundError, ProductAPIError
 from django.core.exceptions import ObjectDoesNotExist
 from .forms import IngredientForm, CustomUserChangeForm
@@ -147,6 +147,23 @@ def account_settings(request):
     return render(request, "account_settings.html", {"form": form})
 
 
+class BarcodeRequestSerializer(serializers.Serializer):
+    """Validates that a barcode matches standard EAN or UPC lengths.
+
+    Enforces that incoming requests strictly provide 8, 12, or 13 
+    numerical digits before allowing the proxy fetch to proceed.
+
+    Attributes:
+        barcode: A RegexField string checking for exact EAN/UPC lengths.
+    """
+    # Note: Added grouping parentheses to ensure the ^ and $ anchors apply beautifully to all OR clauses!
+    barcode = serializers.RegexField(
+        regex=r'^(\d{8}|\d{12}|\d{13})$',
+        error_messages={
+            "invalid": "A valid barcode must be exactly 8, 12, or 13 numerical digits."
+        }
+    )
+
 @api_view(['GET', 'POST'])
 def product_info_api(request) -> Response:
     """Fetches product info from Open Food Facts based on a given barcode.
@@ -163,17 +180,22 @@ def product_info_api(request) -> Response:
         An HTTP Response containing either the product data dictionary or 
         an error message with the appropriate HTTP status code.
     """
-    barcode = None
     if request.method == 'GET':
-        barcode = request.GET.get('barcode')
-    elif request.method == 'POST':
-        barcode = request.data.get('barcode')
+        data = {'barcode': request.GET.get('barcode')}
+    else:
+        # Request.data handles parsing the JSON body for POST
+        data = request.data
         
-    if not barcode:
+    serializer = BarcodeRequestSerializer(data=data)
+    if not serializer.is_valid():
+        # Grab the first error string nicely for the frontend parser
+        first_error = next(iter(serializer.errors.values()))[0]
         return Response(
-            {"error": "Please provide a 'barcode' parameter."},
+            {"error": first_error},
             status=status.HTTP_400_BAD_REQUEST
         )
+        
+    barcode = serializer.validated_data['barcode']
         
     try:
         product_data = fetch_product_info(barcode)
