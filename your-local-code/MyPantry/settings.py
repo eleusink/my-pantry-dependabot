@@ -36,7 +36,16 @@ if not SECRET_KEY:
 # Check whether we're in DEBUG mode (Render environment variable)
 DEBUG = "RENDER" not in os.environ
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]']
+CSRF_TRUSTED_ORIGINS = []
+
+if DEBUG:
+    # Allow local LAN IP for external device testing (e.g. phones)
+    ALLOWED_HOSTS.append('192.168.4.162')
+    
+    # Allow Ngrok subdomains for secure HTTPS tunneling testing
+    ALLOWED_HOSTS.extend(['.ngrok.app', '.ngrok.io', '.ngrok-free.dev'])
+    CSRF_TRUSTED_ORIGINS.extend(['https://*.ngrok.app', 'https://*.ngrok.io', 'https://*.ngrok-free.dev'])
 
 # When DEBUG is False, Django requires a suitable value for ALLOWED_HOSTS.
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
