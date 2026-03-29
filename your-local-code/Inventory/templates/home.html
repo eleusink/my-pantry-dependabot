@@ -22,7 +22,16 @@
       	      <div class="panel-body">
 			  <!-- Barcode Scanner UI -->
 			  <div id="barcode-scanner-container" style="margin-bottom: 20px; text-align: center;">
-				  <button type="button" id="start-scan-btn" style="padding: 8px 16px; margin-bottom: 10px;">📷 Scan Barcode</button>
+				  <div style="margin-bottom: 10px;">
+					  <button type="button" id="start-scan-btn" style="padding: 8px 16px;">📷 Scan Barcode</button>
+					  <button type="button" id="toggle-manual-btn" style="padding: 8px 16px; margin-left: 10px;">⌨️ Type Barcode</button>
+				  </div>
+
+				  <div id="manual-entry-container" style="display: none; margin-bottom: 15px;">
+					  <input type="text" id="manual-barcode-input" placeholder="Enter barcode manually" required pattern="(\d{8}|\d{12}|\d{13})" inputmode="numeric" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 60%; max-width: 250px;">
+					  <button type="button" id="manual-submit-btn" style="padding: 6px 12px; margin-left: 5px;">Search</button>
+				  </div>
+
 				  <p id="scanner-status" style="display: none; color: #555; font-style: italic; margin: 5px 0; font-size: 0.9em;"></p>
 				  <div id="reader" style="width: 100%; max-width: 400px; margin: 0 auto; display: none; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
 			  </div>
@@ -305,14 +314,75 @@
 <script>
 	document.addEventListener('DOMContentLoaded', function() {
 		const startBtn = document.getElementById('start-scan-btn');
+		const toggleManualBtn = document.getElementById('toggle-manual-btn');
+		const manualContainer = document.getElementById('manual-entry-container');
+		const manualSubmitBtn = document.getElementById('manual-submit-btn');
+		const manualInput = document.getElementById('manual-barcode-input');
+
 		const readerDiv = document.getElementById('reader');
 		const statusText = document.getElementById('scanner-status');
 		let html5QrcodeScanner = null;
+
+		function playBeep() {
+			try {
+				const AudioContext = window.AudioContext || window.webkitAudioContext;
+				if (!AudioContext) return;
+				const ctx = new AudioContext();
+				const osc = ctx.createOscillator();
+				const gainNode = ctx.createGain();
+				osc.connect(gainNode);
+				gainNode.connect(ctx.destination);
+				osc.type = "sine";
+				osc.frequency.setValueAtTime(800, ctx.currentTime);
+				gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+				osc.start();
+				osc.stop(ctx.currentTime + 0.15); // beep for 150ms
+			} catch(e) { console.warn("AudioContext error", e); }
+		}
+
+		toggleManualBtn.addEventListener('click', function(event) {
+			event.preventDefault();
+			
+			// If scanner is running, tear it down cleanly
+			if (html5QrcodeScanner) {
+				html5QrcodeScanner.clear().then(() => {
+					readerDiv.style.display = 'none';
+					html5QrcodeScanner = null;
+					statusText.style.display = 'none';
+				}).catch(console.error);
+			}
+			
+			if (manualContainer.style.display === 'none') {
+				manualContainer.style.display = 'block';
+				toggleManualBtn.textContent = '✖️ Cancel Keyboard';
+				startBtn.style.display = 'none'; 
+				manualInput.focus();
+			} else {
+				manualContainer.style.display = 'none';
+				toggleManualBtn.textContent = '⌨️ Type Barcode';
+				startBtn.style.display = 'inline-block';
+			}
+		});
+
+		manualSubmitBtn.addEventListener('click', function(event) {
+			event.preventDefault();
+			if (!manualInput.reportValidity()) return; // Trigger native HTML5 warnings
+			
+			const barcode = manualInput.value.trim();
+			if (barcode) {
+				searchProductByBarcode(barcode);
+			}
+		});
 
 		startBtn.addEventListener('click', function(event) {
 			event.preventDefault(); // ensure mobile devices don't interpret as submit
 			if (html5QrcodeScanner) return;
 			
+			// Close manual entry if open
+			manualContainer.style.display = 'none';
+			toggleManualBtn.textContent = '⌨️ Type Barcode';
+			toggleManualBtn.style.display = 'inline-block';
+
 			readerDiv.style.display = 'block';
 			readerDiv.style.pointerEvents = 'auto'; // reset in case we locked it
 			statusText.style.display = 'block';
@@ -326,26 +396,11 @@
 			html5QrcodeScanner.render(onScanSuccess, onScanFailure);
 		});
 
-		function onScanSuccess(decodedText, decodedResult) {
+		function searchProductByBarcode(decodedText) {
 			statusText.textContent = `Searching for product... (Barcode: ${decodedText})`;
 			statusText.style.color = "blue";
+			statusText.style.display = 'block';
 			
-			// Lock the UI container immediately to prevent ghost canvas layers from intercepting clicks below it!
-			readerDiv.style.pointerEvents = 'none';
-
-			// Stop scanner asynchronously. Synchronous clear() on iOS WebRTC often permanently locks the DOM thread or leaves a transparent video overlay catching tap events on the Date inputs beneath it (appearing greyed out).
-			if (html5QrcodeScanner) {
-				if (typeof html5QrcodeScanner.pause === "function") {
-					html5QrcodeScanner.pause(true);
-				}
-				setTimeout(() => {
-					html5QrcodeScanner.clear().then(() => {
-						readerDiv.style.display = 'none';
-						html5QrcodeScanner = null;
-					}).catch(error => console.error("Failed to clear scanner.", error));
-				}, 500);
-			}
-
 			// Fetch product data from API
 			fetch(`/api/product/?barcode=${decodedText}`)
 				.then(response => {
@@ -357,13 +412,13 @@
 				.then(data => {
 					statusText.textContent = "Product loaded successfully. Feel free to edit below.";
 					statusText.style.color = "green";
-					startBtn.style.display = 'inline-block';
+					if (!html5QrcodeScanner && manualContainer.style.display === 'none') startBtn.style.display = 'inline-block';
 					
 					// Populate the Add Item form cleanly
 					const safeName = (data.name || "").replace(/[\r\n]/g, ""); // Strip hidden submit characters from barcodes
-					if(safeName) document.getElementById('ingredient-name').value = safeName;
-					if(data.quantity) document.getElementById('ingredient-amount').value = data.quantity;
-					if(data.unit_measurement) document.getElementById('ingredient-unit').value = data.unit_measurement;
+					document.getElementById('ingredient-name').value = safeName || "";
+					document.getElementById('ingredient-amount').value = data.quantity || "";
+					document.getElementById('ingredient-unit').value = data.unit_measurement || "";
 					
 					// Convenience: Auto-fill Date Obtained to "today" if it's empty
 					const dateObtainedInput = document.getElementById('ingredient-obtained');
@@ -376,12 +431,58 @@
 				.catch(err => {
 					statusText.textContent = `Error: ${err.message}`;
 					statusText.style.color = "red";
-					startBtn.style.display = 'inline-block';
+					if (!html5QrcodeScanner && manualContainer.style.display === 'none') startBtn.style.display = 'inline-block';
+
+					// Clear populated fields to emphasize the product wasn't found
+					document.getElementById('ingredient-name').value = "";
+					document.getElementById('ingredient-amount').value = "";
+					document.getElementById('ingredient-unit').value = "";
+					
+					// Flash red outline to grab attention
+					const formElement = document.getElementById('add-ingredient-form');
+					formElement.style.transition = "border 0.3s";
+					formElement.style.border = "2px solid red";
+					formElement.style.padding = "5px";
+					formElement.style.borderRadius = "5px";
+					
+					setTimeout(() => { 
+					    formElement.style.border = "none"; 
+					    formElement.style.padding = "0";
+					}, 2000);
 				});
 		}
 
+		function onScanSuccess(decodedText, decodedResult) {
+			playBeep(); // Audio feedback immediately confirms read!
+			
+			// Lock the UI container immediately to prevent ghost canvas layers from intercepting clicks below it!
+			readerDiv.style.pointerEvents = 'none';
+
+			// Stop scanner asynchronously
+			if (html5QrcodeScanner) {
+				if (typeof html5QrcodeScanner.pause === "function") {
+					html5QrcodeScanner.pause(true);
+				}
+				setTimeout(() => {
+					html5QrcodeScanner.clear().then(() => {
+						readerDiv.style.display = 'none';
+						html5QrcodeScanner = null;
+						startBtn.style.display = 'inline-block';
+					}).catch(error => console.error("Failed to clear scanner.", error));
+				}, 500);
+			}
+
+			// Fire externalized fetch function
+			searchProductByBarcode(decodedText);
+		}
+
 		function onScanFailure(error) {
-			// ignore ongoing unreadable frames
+			// Catch generic browser NotAllowedError for graceful UI fallback
+			if (typeof error === 'string' && (error.includes('NotAllowedError') || error.includes('Permission'))) {
+			    statusText.textContent = "Camera permission denied! Please use 'Type Barcode' instead.";
+			    statusText.style.color = "red";
+			    statusText.style.display = 'block';
+			}
 		}
 	});
 </script>
