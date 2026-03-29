@@ -34,6 +34,7 @@ class Ingredient(models.Model):
         CAN = 'CAN', 'Can'
         CARTON = 'CRT', 'Carton'
         BAGS = 'BAGS', 'Bags'
+        UNIT = 'UNT', 'Unit'
 
     name = models.CharField(
         max_length=100,

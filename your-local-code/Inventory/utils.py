@@ -1,4 +1,58 @@
 import requests
+from .models import Ingredient
+
+# Map external API strings (lowercased) to our internal DB codes
+UNIT_MAPPING = {
+    'g': Ingredient.Units.GRAM,
+    'gram': Ingredient.Units.GRAM,
+    'grams': Ingredient.Units.GRAM,
+    'ml': Ingredient.Units.MILLILITER,
+    'milliliter': Ingredient.Units.MILLILITER,
+    'oz': Ingredient.Units.OUNCE,
+    'ounce': Ingredient.Units.OUNCE,
+    'kg': Ingredient.Units.KILOGRAM,
+    'l': Ingredient.Units.LITER,
+    'tbsp': Ingredient.Units.TABLESPOON,
+    't': Ingredient.Units.TABLESPOON,
+    'tsp': Ingredient.Units.TEASPOON,
+    'cup': Ingredient.Units.CUP,
+    #'bar': Ingredient.Units.BAR,
+    #'bars': Ingredient.Units.BAR,
+    'bottle': Ingredient.Units.BOTTLES,
+    'bottles': Ingredient.Units.BOTTLES,
+    'box': Ingredient.Units.BOXES,
+    'boxes': Ingredient.Units.BOXES,
+    'can': Ingredient.Units.CAN,
+    'cans': Ingredient.Units.CAN,
+    'carton': Ingredient.Units.CARTON,
+    'cartons': Ingredient.Units.CARTON,
+    'bag': Ingredient.Units.BAGS,
+    'bags': Ingredient.Units.BAGS,
+    'unit': Ingredient.Units.UNIT,
+    'units': Ingredient.Units.UNIT,
+    'lb': Ingredient.Units.POUND,
+    'pound': Ingredient.Units.POUND,
+    'pounds': Ingredient.Units.POUND,
+}
+
+def normalize_unit(api_unit_string: str) -> str:
+    """Normalizes an external API unit string to an internal model choice.
+
+    This adapter prevents arbitrary external API strings from violating the
+    strict choices defined in the database schema. If no match is found,
+    it maps the unit to a safe UNIT unit.
+
+    Args:
+        api_unit_string: The raw string passed from the external API.
+
+    Returns:
+        The mapped internal TextChoice code, or UNIT otherwise.
+    """
+    if not api_unit_string:
+        return Ingredient.Units.UNIT
+
+    clean_string = str(api_unit_string).strip().lower()
+    return UNIT_MAPPING.get(clean_string, Ingredient.Units.UNIT)
 
 def fetch_product_info(barcode: str) -> dict | None:
     """
@@ -10,8 +64,8 @@ def fetch_product_info(barcode: str) -> dict | None:
     Returns:
         dict: A dictionary containing the following keys if the product is found:
               - product_name_en
-              - serving_quantity
-              - serving_quantity_unit
+              - product_quantity
+              - product_quantity_unit
               - serving_size
         None: If the product is not found, or an error explicitly occurred.
     """
@@ -29,9 +83,9 @@ def fetch_product_info(barcode: str) -> dict | None:
         if data.get("status_verbose") == "product found":
             product = data.get("product", {})
             return {
-                "product_name_en": product.get("product_name_en"),
-                "serving_quantity": product.get("serving_quantity"),
-                "serving_quantity_unit": product.get("serving_quantity_unit"),
+                "product_name_en": product.get("product_name_en") or product.get("product_name"),
+                "product_quantity": product.get("product_quantity") or product.get("serving_quantity"),
+                "product_quantity_unit": product.get("product_quantity_unit") or product.get("serving_quantity_unit"),
                 "serving_size": product.get("serving_size"),
             }
             
