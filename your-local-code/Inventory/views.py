@@ -107,7 +107,7 @@ def edit_ingredient(request):
 
 @login_required
 def delete_ingredient(request, item_id):
-    """Delete an inventory item by ID
+    """Delete an inventory item by ID.
 
     Args:
         request: Django HttpRequest object.
@@ -175,8 +175,6 @@ def product_info_api(request) -> Response:
             status=status.HTTP_400_BAD_REQUEST
         )
         
-    product_data = fetch_product_info(barcode)
-    
     try:
         product_data = fetch_product_info(barcode)
         extracted_data = {
