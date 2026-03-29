@@ -3,7 +3,6 @@ from django.shortcuts import get_object_or_404, redirect, render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from .utils import fetch_product_info
 from .utils import fetch_product_info, normalize_unit, ProductNotFoundError, ProductAPIError
 from django.core.exceptions import ObjectDoesNotExist
 from .forms import IngredientForm, CustomUserChangeForm
@@ -180,7 +179,6 @@ def product_info_api(request) -> Response:
     
     try:
         product_data = fetch_product_info(barcode)
-        
         extracted_data = {
             "name": product_data.get("product_name_en"),
             "quantity": product_data.get("product_quantity"),
@@ -188,7 +186,6 @@ def product_info_api(request) -> Response:
         }
     except ProductNotFoundError as e:
         return Response(
-            {"error": "Product not found or invalid barcode."},
             {"error": str(e)},
             status=status.HTTP_404_NOT_FOUND
         )
