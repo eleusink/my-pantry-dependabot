@@ -10,20 +10,27 @@ from .models import Ingredient
 
 @login_required
 def home(request):
-    """Display all inventory items and handle creation of new items.
+    """
+    Display all inventory items and handle creation of new items.
 
     Returns:
         HttpResponse: Renders home.html on GET with:
-            - form: Empty IngredientForm instance.
-            - items: QuerySet of all Ingredient records.
+
+        * form: Empty IngredientForm instance.
+        * items: QuerySet of all Ingredient records.
+
         HttpResponseRedirect: Redirects to 'home' after a successful POST.
+        
         HttpResponse: Re-renders home.html with errors if POST data is invalid.
 
-    Accepted Methods:
-        GET: Returns the inventory list page.
-        POST: Validates and saves a new Ingredient record.
+    Notes:
+        **Accepted Methods:**
 
-    Redirects:
+        * GET: Returns the inventory list page.
+        * POST: Validates and saves a new Ingredient record.
+
+        **Redirects:**
+
         On successful POST, redirects to the 'home' route. Reloads page.
     """
     # Handle form submission
@@ -66,16 +73,17 @@ def about(request):
 
 @login_required
 def edit_ingredient(request):
-    """Editing Ingredients in modal, handles / cleans user input
+    """
+    Editing Ingredients in modal, handles / cleans user input
 
-        Returns:
-            home: redirects to home.html using URL path
+    Returns:
+        home: redirects to home.html using URL path
 
-        Accepted Methods:
-            POST: Validates and saves an edited Ingredient record.
+    Accepted Methods:
+        POST: Validates and saves an edited Ingredient record.
 
-        Redirects:
-            On successful POST, redirects to the 'home' route. Reloads page.
+    Redirects:
+        On successful POST, redirects to the 'home' route. Reloads page.
     """
     if request.method == 'POST':
         ingredient_id = request.POST.get('ingredient_id')
@@ -103,7 +111,8 @@ def edit_ingredient(request):
 
 @login_required
 def delete_ingredient(request, item_id):
-    """Delete an inventory item by ID.
+    """
+    Delete an inventory item by ID.
 
     Args:
         request: Django HttpRequest object.
