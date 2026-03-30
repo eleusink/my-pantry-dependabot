@@ -1,4 +1,4 @@
-name: AI Pull Request Review Direct (overengineered)
+name: AI Pull Request Review (Pragmatically Over-Engineered)
 
 on:
   pull_request:
@@ -39,6 +39,9 @@ jobs:
       
       # 4. Universal Modifiers
       TEST_RULES: "For Pytest code: Evaluate test quality. Check for proper fixture usage (avoiding unnecessary DB hits), proper test isolation, descriptive test names, and ensure assertions check actual data state."
+      
+      # 5. BDD Rules 
+      BDD_RULES: "For Behave BDD code: Evaluate Gherkin syntax (.feature) for business-readable clarity. Check Python step definitions (steps/*.py) for proper context usage, avoiding logic duplication, and ensuring realistic user-flow simulations."
     # ==========================================
 
     steps:
@@ -57,8 +60,8 @@ jobs:
             echo "SELECTED_MODEL=o3" >> $GITHUB_ENV
             echo "Production merge detected. Using heavy reasoning model: o3."
           else
-            echo "SELECTED_MODEL=gpt-5.1-codex-mini" >> $GITHUB_ENV
-            echo "Feature branch merge detected. Using code-optimized model: gpt-5.1-codex-mini."
+            echo "SELECTED_MODEL=o3" >> $GITHUB_ENV
+            echo "Feature branch merge detected. Using heavy reasoning model: o3."
           fi
 
       - name: Custom Django & Pytest AI Review
@@ -93,18 +96,23 @@ jobs:
           if echo "$CHANGED_FILES" | grep -qE "test_.*\.py$|conftest\.py$"; then
             APP_RULES="$APP_RULES $TEST_RULES"
           fi
+          # 3b. Dynamically append Behave BDD instructions if feature/step files are modified
+          if echo "$CHANGED_FILES" | grep -qE "\.feature$|steps/.*\.py$"; then
+            APP_RULES="$APP_RULES $BDD_RULES"
+          fi
           
-          # 4. Build the JSON payload using --rawfile to safely load the massive diff
+          # 4. Build the JSON payload using the structured roles within the 'input' array
+          # We use jq to safely escape the strings and load the massive diff into the user prompt
           jq -n \
             --arg model "$SELECTED_MODEL" \
             --arg rules "$APP_RULES" \
             --rawfile diff pr_diff.txt \
             '{
               "model": $model,
-              "messages": [
+              "input": [
                 {
                   "role": "system",
-                  "content": ("You are a strict Senior Django Engineer. " + $rules + " Keep your feedback concise, actionable, and formatted in Markdown. Do not nitpick PEP8 formatting as Flake8 handles that.")
+                  "content": ("You are a pragmatic Django Instructor reviewing a student 2-week homework assignment. " + $rules + " Keep your feedback concise and actionable. CRITICAL: This is a simple homework assignment, not a production enterprise system. Do NOT suggest enterprise-grade features (e.g., multi-database environments, advanced concurrency handling, production isolation levels). Only suggest fixes for actual bugs or simple improvements proportional to a short homework assignment scope. Do not nitpick PEP8 formatting as Flake8 handles that.")
                 },
                 {
                   "role": "user",
@@ -113,14 +121,15 @@ jobs:
               ]
             }' > payload.json
             
-          # 5. Call OpenAI API directly, uploading the JSON file via @payload.json
-          RESPONSE=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
+          # 5. Call OpenAI API directly via the responses endpoint
+          RESPONSE=$(curl -s -X POST https://api.openai.com/v1/responses \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
             -H "Content-Type: application/json" \
             -d @payload.json)
             
-          # 6. Extract and post the review
-          REVIEW_COMMENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
+          # 6. Extract and post the review using the Responses JSON schema logic
+          # We use select() to dynamically find the message block, skipping the reasoning block
+          REVIEW_COMMENT=$(echo "$RESPONSE" | jq -r '.output[] | select(.type == "message") | .content[] | select(.type == "output_text") | .text // empty')
           
           if [ -n "$REVIEW_COMMENT" ]; then
             gh pr comment $PR_NUMBER --body "$REVIEW_COMMENT"
