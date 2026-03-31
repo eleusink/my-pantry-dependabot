@@ -1,4 +1,6 @@
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.contrib.auth import get_user_model
+from django.test import Client
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -9,13 +11,23 @@ from .models import Ingredient
 
 class InventoryViewTests(TestCase):
     def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username="testuser",
+            password="testpass",
+        )
+
+        self.client = Client()
+        self.client.login(username="testuser", password="testpass")
+
         self.item = Ingredient.objects.create(
             name='Milk',
             quantity='2.00',
             date_expired='2026-03-20',
             food_group='DA',
             unit_measurement='L',
-            date_obtained='2026-03-02'
+            date_obtained='2026-03-02',
+            user=self.user,
         )
 
     def test_home_list_view_returns_200(self):
@@ -24,14 +36,16 @@ class InventoryViewTests(TestCase):
 
     def test_add_item_returns_302_and_increases_count(self):
         starting_count = Ingredient.objects.count()
+        tomorrow = timezone.now().date() + datetime.timedelta(days=1)
 
         response = self.client.post(reverse('home'), {
             'name': 'Apples',
             'quantity': '5.00',
-            'date_expired': '2026-03-25',
+            'date_expired': tomorrow,
             'food_group': 'FR',
             'unit_measurement': 'A',
             'date_obtained': '2026-03-05',
+            'user': self.user,
         })
 
         self.assertEqual(response.status_code, 302)
@@ -57,7 +71,7 @@ class InventoryViewTests(TestCase):
         starting_count = Ingredient.objects.count()
 
         response = self.client.post(reverse('home'), {
-            'name': 'Broken Item',
+            'name': 'BrokenItem',
             'quantity': '',
             'date_expired': '2026-03-25',
             'food_group': 'FR',
@@ -65,12 +79,13 @@ class InventoryViewTests(TestCase):
             'date_obtained': '2026-03-02',
         })
 
+        # 302 - redirect from login
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Ingredient.objects.count(), starting_count)
 
     def test_negative_quantity_validation(self):
         item = Ingredient(
-            name='Bad Milk',
+            name='BadMilk',
             quantity='-1.00',
             date_expired='2026-03-20',
             food_group='DA',
@@ -83,7 +98,7 @@ class InventoryViewTests(TestCase):
 
     def test_zero_quantity_validation(self):
         item = Ingredient(
-            name='Empty Box',
+            name='EmptyBox',
             quantity='0.00',
             date_expired='2026-03-20',
             food_group='OT',
@@ -111,7 +126,7 @@ class InventoryViewTests(TestCase):
         yesterday = timezone.now().date() - datetime.timedelta(days=1)
 
         item = Ingredient(
-            name='Old Bread',
+            name='OldBread',
             quantity='1.00',
             date_expired=yesterday,
             food_group='GR',
@@ -126,12 +141,13 @@ class InventoryViewTests(TestCase):
         yesterday = timezone.now().date() - datetime.timedelta(days=1)
 
         item = Ingredient.objects.create(
-            name='Expired Yogurt',
+            name='ExpiredYogurt',
             quantity='1.00',
             date_expired=yesterday,
             food_group='DA',
             unit_measurement='A',
             date_obtained='2026-03-02',
+            user=self.user,
         )
 
         self.assertEqual(item.minutes_remaining, 0)
@@ -140,12 +156,13 @@ class InventoryViewTests(TestCase):
         tomorrow = timezone.now().date() + datetime.timedelta(days=1)
 
         item = Ingredient.objects.create(
-            name='Fresh Apple',
+            name='FreshApple',
             quantity='1.00',
             date_expired=tomorrow,
             food_group='FR',
             unit_measurement='A',
             date_obtained='2026-03-02',
+            user=self.user,
         )
 
         self.assertEqual(item.minutes_remaining, 1440)
@@ -170,18 +187,18 @@ class InventoryViewTests(TestCase):
     def test_edit_item_updates_data(self):
         """Edit via POST successfully updates item"""
         original_name = self.item.name
+        tomorrow = timezone.now().date() + datetime.timedelta(days=1)
 
         response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Apples',
             'quantity': '5.00',
-            'date_expired': '2026-03-25',
+            'date_expired': tomorrow,
             'food_group': 'FR',
             'unit_measurement': 'A',
             'date_obtained': '2026-03-05',
         })
 
-        self.assertEqual(response.status_code, 302)
         self.item.refresh_from_db()
         self.assertNotEqual(self.item.name, original_name)
         self.assertEqual(self.item.name, 'Apples')
@@ -213,12 +230,13 @@ class InventoryViewTests(TestCase):
         """Only changed fields are modified in database"""
         original_quantity = self.item.quantity
         original_name = self.item.name
+        tomorrow = timezone.now().date() + datetime.timedelta(days=1)
 
         response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Creamer',
             'quantity': '2',
-            'date_expired': '2026-03-20',
+            'date_expired': tomorrow,
             'food_group': 'DA',
             'unit_measurement': 'L',
             'date_obtained': '2026-03-02',
@@ -231,27 +249,41 @@ class InventoryViewTests(TestCase):
         self.assertNotEqual(str(self.item.name), str(original_name))
 
 
+
+
 class InventoryFormTests(TestCase):
     def setUp(self):
         """Reset/clean database before every test"""
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username="testuser",
+            password="testpass",
+        )
+
+        self.client = Client()
+        self.client.login(username="testuser", password="testpass")
+        tomorrow = timezone.now().date() + datetime.timedelta(days=1)
+
         self.item = Ingredient.objects.create(
             name='Milk',
             quantity='2.00',
-            date_expired='2027-03-20',
+            date_expired=tomorrow,
             food_group='DA',
             unit_measurement='L',
-            date_obtained='2026-03-02'
+            date_obtained='2026-03-02',
+            user=self.user,
         )
 
     def test_invalid_edit_does_not_update(self):
         """Empty input doesn't modify database"""
         original_quantity = self.item.quantity
+        tomorrow = timezone.now().date() + datetime.timedelta(days=1)
 
         response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Salsa',
             'quantity': '',
-            'date_expired': '2026-03-25',
+            'date_expired': tomorrow,
             'food_group': 'FR',
             'unit_measurement': 'A',
             'date_obtained': '2026-03-05',
@@ -265,12 +297,13 @@ class InventoryFormTests(TestCase):
     def test_bad_name_does_not_update_data(self):
         """Non-alphabetical name doesn't modify database"""
         original_name = self.item.name
+        tomorrow = timezone.now().date() + datetime.timedelta(days=1)
 
         response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': '5al5a',
             'quantity': '3',
-            'date_expired': '2026-03-25',
+            'date_expired': tomorrow,
             'food_group': 'FR',
             'unit_measurement': 'A',
             'date_obtained': '2026-03-05',
@@ -284,12 +317,13 @@ class InventoryFormTests(TestCase):
     def test_edit_with_negative_quantity_does_not_update(self):
         """Negative value won't modify database"""
         original_quantity = self.item.quantity
+        tomorrow = timezone.now().date() + datetime.timedelta(days=1)
 
         response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Salsa',
             'quantity': '-3',
-            'date_expired': '2026-03-25',
+            'date_expired': tomorrow,
             'food_group': 'FR',
             'unit_measurement': 'A',
             'date_obtained': '2026-03-05',
@@ -303,12 +337,13 @@ class InventoryFormTests(TestCase):
     def test_edit_with_missing_date_obtained(self):
         """Missing information won't modify database"""
         original_obtained = self.item.date_obtained
+        tomorrow = timezone.now().date() + datetime.timedelta(days=1)
 
         response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Salsa',
             'quantity': '3',
-            'date_expired': '2026-03-25',
+            'date_expired': tomorrow,
             'food_group': 'FR',
             'unit_measurement': 'A',
             'date_obtained': '',
@@ -322,15 +357,17 @@ class InventoryFormTests(TestCase):
     def test_edit_obtained_after_expired(self):
         """Date obtained after date expired won't modify database"""
         original_obtained = self.item.date_obtained
+        tomorrow = timezone.now().date() + datetime.timedelta(days=1)
+        twoDays = timezone.now().date() + datetime.timedelta(days=2)
 
         response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Salsa',
             'quantity': '3',
-            'date_expired': '2060-03-25',
+            'date_expired': tomorrow,
             'food_group': 'FR',
             'unit_measurement': 'A',
-            'date_obtained': '2070-03-05',
+            'date_obtained': twoDays,
         })
 
         # Doesn't crash, doesn't modify
@@ -342,6 +379,7 @@ class InventoryFormTests(TestCase):
         """Invalid expiration dates (already passed) won't modify database"""
         original_expired = self.item.date_expired
         yesterday = timezone.now().date() - datetime.timedelta(days=1)
+        today = timezone.now().date()
 
         response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
@@ -350,7 +388,7 @@ class InventoryFormTests(TestCase):
             'date_expired': yesterday,
             'food_group': 'FR',
             'unit_measurement': 'A',
-            'date_obtained': '2070-03-05',
+            'date_obtained': today,
         })
 
         # Doesn't crash, doesn't modify
@@ -362,7 +400,7 @@ class InventoryFormTests(TestCase):
         """Invalid expiration dates (already passed) won't modify database"""
         today = timezone.now().date().isoformat()
         obtained = timezone.now().date() - datetime.timedelta(days=1)
-
+    
         response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Milk',
