@@ -60,6 +60,13 @@
 			      <label for="ingredient-expiration">Expiration Date</label>
 			      <input type="date" id="ingredient-expiration" name="date_expired" onchange="validateExpirationDate(this)" required>
 
+				  <script>
+					document.addEventListener('DOMContentLoaded', function() {
+						const today = new Date().toISOString().split('T')[0];
+						document.getElementById('ingredient-obtained').value = today;
+					});
+				  </script>
+
 			      <button type="submit">Add Item</button>
 		      </form>
 
@@ -207,6 +214,7 @@
 		document.getElementById("ingredient-food-group").value = "";
 		document.getElementById("ingredient-amount").value = "";
 		document.getElementById("ingredient-unit").value = "";
+		document.getElementById("ingredient-obtained").value = today;
 		document.getElementById("ingredient-expiration").value = "";
 	}
 
