@@ -58,7 +58,7 @@
 			      <input type="date" id="ingredient-obtained" name="date_obtained" required>
 
 			      <label for="ingredient-expiration">Expiration Date</label>
-			      <input type="date" id="ingredient-expiration" name="date_expired" required>
+			      <input type="date" id="ingredient-expiration" name="date_expired" onchange="validateExpirationDate(this)" required>
 
 			      <button type="submit">Add Item</button>
 		      </form>
@@ -172,6 +172,13 @@
 
 	function addIngredient(event) {
 	       event.preventDefault();
+
+		   const expirationInput = document.getElementById('ingredient-expiration');
+
+		   if (!expirationInput.checkValidity()) {
+				expirationInput.reportValidity();
+				return;
+			}
 
 	       const name = document.getElementById('ingredient-name').value.trim();
 	       const foodGroup = document.getElementById('ingredient-food-group').value;
