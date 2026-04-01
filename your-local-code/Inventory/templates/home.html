@@ -84,11 +84,12 @@
 
 				      <div class="item-actions">
 					      <button type="button" onclick="editIngredient(this)">Edit</button>
-
-					      <form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
-						      {% csrf_token %}
-						      <button type="submit">Delete</button>
-					      </form>
+						  <form id="delete-form-{{ item.id }}" method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+							{% csrf_token %}
+							<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
+								Delete
+							</button>
+						</form>
 				      </div>
 			      </li>
 			      {% endfor %}
@@ -282,7 +283,7 @@
 				<option value="KG" ${unit === 'KG' ? 'selected' : ''}>kg</option>
 				<option value="ML" ${unit === 'ML' ? 'selected' : ''}>ml</option>
 				<option value="L" ${unit === 'L' ? 'selected' : ''}>l</option>
-				<option value="A" ${unit === 'A' ? 'selected' : ''}>amount</option>
+				<option value="A" ${unit === 'A' ? 'selected' : ''}>count</option>
 				<option value="LB" ${unit === 'LB' ? 'selected' : ''}>lb</option>
 				<option value="BX" ${unit === 'BX' ? 'selected' : ''}>box(es)</option>
 				<option value="BTL" ${unit === 'BTL' ? 'selected' : ''}>bottle(s)</option>
@@ -305,6 +306,24 @@
 		`;
 
 		openModal('Edit Ingredient', formContent);
+	}
+
+	function confirmDelete(itemName, formId) {
+    const modalBody = `
+        <div class="confirm-delete-content">
+            <p>Are you sure you want to delete item: <strong>${itemName}</strong>?</p>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+                <button type="button" class="btn-confirm" onclick="document.getElementById('${formId}').submit()">
+                    Yes
+                </button>
+                <button type="button" class="btn-cancel" onclick="closeModal()">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    `;
+
+    openModal("Confirm Deletion", modalBody);
 	}
 </script>
 {% endblock %}
