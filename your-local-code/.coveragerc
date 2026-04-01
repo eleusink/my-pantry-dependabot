@@ -6,3 +6,4 @@ omit =
     */migrations/*
     */__pycache__/*
     manage.py
+    tests/*
