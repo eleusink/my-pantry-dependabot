@@ -1,11 +1,11 @@
 from behave import given, when, then
 from Inventory.models import Ingredient
-from django.test import Client
 from django.urls import reverse
 from django.contrib.messages import get_messages
 from datetime import datetime, timedelta
 from django.utils import timezone
 import string
+
 
 
 @given('I have an ingredient "{name}" with quantity "{quantity}"')
@@ -14,6 +14,7 @@ def step_impl_1(context, name, quantity):
     today = timezone.now().date().isoformat()
 
     context.ingredient = Ingredient.objects.create(
+        user=context.user,  # Added user context
         name=name,
         quantity=quantity,
         date_expired=future,
@@ -28,6 +29,7 @@ def step_impl_2(context, name, date):
     date_obj = datetime.strptime(date, "%Y-%m-%d").date()
 
     context.ingredient = Ingredient.objects.create(
+        user=context.user,  # Added user context
         name=name,
         quantity='2',  # Default quantity
         date_expired=date_obj,
@@ -39,15 +41,15 @@ def step_impl_2(context, name, date):
 
 @given('I am on the home page')
 def step_impl_3(context):
-    context.client = Client()
+    # Use the pre-authenticated client from environment.py
     context.response = context.client.get(reverse('home'))
-    assert context.response.status_code == 200
+    assert context.response.status_code == 200, f"Expected 200, got {context.response.status_code}"
 
 
 @given('I have no ingredients in my inventory')
 def step_impl_4(context):
-    # Ensure database is empty
-    Ingredient.objects.all().delete()
+    # Ensure database is empty for this user
+    Ingredient.objects.filter(user=context.user).delete()
 
 
 @given('I have the following ingredients in my inventory')
@@ -56,6 +58,7 @@ def step_impl_5(context):
 
     for row in context.table:
         Ingredient.objects.create(
+            user=context.user,  # Added user context
             name=row['name'],
             quantity=row.get('quantity', '1.00'),
             date_expired=row['expiration_date'],
@@ -70,12 +73,12 @@ def step_impl_6(context, count):
     today = timezone.now().date()
     future = today + timedelta(days=30)
 
-    # Whoops, only-letter naming convention
     letters = string.ascii_uppercase
     for i in range(count):
         name = f"Item{letters[i]}"
 
         Ingredient.objects.create(
+            user=context.user,  # Added user context
             name=name,
             quantity="1.00",
             date_expired=future,
@@ -87,7 +90,7 @@ def step_impl_6(context, count):
 
 @when('I edit the ingredient to have quantity "{quantity}"')
 def step_impl_7(context, quantity):
-    context.client = Client()
+    # Use the pre-authenticated client
     context.response = context.client.post(
         reverse('edit_item'),
         {
@@ -106,7 +109,7 @@ def step_impl_7(context, quantity):
 def step_impl_8(context, date):
     date_obj = datetime.strptime(date, "%Y-%m-%d").date()
 
-    context.client = Client()
+    # Use the pre-authenticated client
     context.response = context.client.post(
         reverse('edit_item'),
         {
@@ -123,10 +126,10 @@ def step_impl_8(context, date):
 
 @when('I add an ingredient with name "{name}", quantity "{quantity}", and expiration date "{date}"')
 def step_impl_9(context, name, quantity, date):
-    context.client = Client()
     context.ingredient_name = name
     today = timezone.now().date().isoformat()
 
+    # Use the pre-authenticated client
     context.response = context.client.post(reverse('home'), {
         'name': name,
         'quantity': quantity,
@@ -139,13 +142,9 @@ def step_impl_9(context, name, quantity, date):
 
 @when('I visit the inventory page')
 def step_impl_10(context):
-    context.client = Client()
+    # Use the pre-authenticated client
     context.response = context.client.get(reverse('home'))  # Adjust URL name
     assert context.response.status_code == 200
-
-
-# @when('I delete "{name}"')
-# def step_impl_11(context):
 
 
 @then('the ingredient should have quantity "{quantity}"')
@@ -175,7 +174,8 @@ def step_impl_14(context, date):
 @then('the ingredient "{name}" should appear in my inventory')
 def step_impl_15(context, name):
     try:
-        context.ingredient = Ingredient.objects.get(name=name)
+        # Added user filter to be safe
+        context.ingredient = Ingredient.objects.get(name=name, user=context.user)
     except Ingredient.DoesNotExist:
         assert False, f"Ingredient '{name}' was not found in inventory"
 
@@ -183,8 +183,8 @@ def step_impl_15(context, name):
 @then('the ingredient should not be added')
 def step_impl_16(context):
     # Check that ingredient was NOT created
-    if context.ingredient_name:
-        ingredient_exists = Ingredient.objects.filter(name=context.ingredient_name).exists()
+    if hasattr(context, 'ingredient_name'):
+        ingredient_exists = Ingredient.objects.filter(name=context.ingredient_name, user=context.user).exists()
         assert not ingredient_exists, \
             f"Ingredient '{context.ingredient_name}' should not have been added"
 
@@ -199,26 +199,13 @@ def step_impl_17(context):
 
 @then('I should see "No ingredients found" or an empty list')
 def step_impl_18(context):
-    assert Ingredient.objects.count() == 0
-
-    # # Check for common "empty" messages
-    # response_content = context.response.content.decode('utf-8').lower()
-    # empty_indicators = ['no ingredients', 'empty', 'nothing to display']
-    # found = any(indicator in response_content for indicator in empty_indicators)
-    # assert found, "Expected to see an empty state message"
+    # Filter by user context
+    assert Ingredient.objects.filter(user=context.user).count() == 0
 
 
 @then('I should have {count:d} ingredients in my inventory')
 def step_impl_19(context, count):
-    actual_count = Ingredient.objects.count()
+    # Filter by user context
+    actual_count = Ingredient.objects.filter(user=context.user).count()
     assert actual_count == count, \
         f"Expected {count} ingredients, but found {actual_count}"
-
-
-# @then('"{name}" should not appear in my inventory')
-# def step_impl_20(context):
-#     # Check that ingredient was NOT created
-#     if context.ingredient_name:
-#         ingredient_exists = Ingredient.objects.filter(name=context.ingredient_name).exists()
-#         assert not ingredient_exists, \
-#             f"Ingredient '{context.ingredient_name}' should not have been added"
