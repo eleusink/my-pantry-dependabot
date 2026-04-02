@@ -44,6 +44,18 @@ class TestUtils:
             fetch_product_info('00000000000')
 
     @patch('Inventory.utils.requests.get')
+    def test_fetch_product_info_status_200_but_not_found(self, mock_get):
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "status_verbose": "product not found",
+        }
+        mock_get.return_value = mock_response
+
+        with pytest.raises(ProductNotFoundError):
+            fetch_product_info('012345678912')
+
+    @patch('Inventory.utils.requests.get')
     def test_fetch_product_info_timeout(self, mock_get):
         mock_get.side_effect = requests.exceptions.Timeout("Connection timed out")
 

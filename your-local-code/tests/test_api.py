@@ -1,20 +1,16 @@
 import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
-from Inventory.views import BarcodeRequestSerializer
-from django.test import override_settings
+from Inventory.serializers import BarcodeRequestSerializer
 
 class TestBarcodeSerializer:
-    def test_valid_ean8(self):
-        serializer = BarcodeRequestSerializer(data={'barcode': '12345678'})
-        assert serializer.is_valid()
-
-    def test_valid_upc12(self):
-        serializer = BarcodeRequestSerializer(data={'barcode': '041192108228'})
-        assert serializer.is_valid()
-
-    def test_valid_ean13(self):
-        serializer = BarcodeRequestSerializer(data={'barcode': '1234567890123'})
+    @pytest.mark.parametrize('barcode', [
+        '12345678',       # EAN-8
+        '041192108228',   # UPC-12
+        '1234567890123'   # EAN-13
+    ])
+    def test_valid_barcode_lengths(self, barcode):
+        serializer = BarcodeRequestSerializer(data={'barcode': barcode})
         assert serializer.is_valid()
 
     def test_invalid_length(self):
@@ -39,7 +35,8 @@ class TestProductInfoAPI:
         to confirm infrastructure isn't blocking outgoing traffic and the payload format hasn't changed.
         Using a known UPC: 041192108228 (might map to mac & cheese or similar test item).
         """
-        response = self.client.get('/api/product/', {'barcode': '041192108228'})
+        url = reverse('product_info_api')
+        response = self.client.get(url, {'barcode': '041192108228'})
         
         # We expect a 200 OK since this is a valid barcode commonly used in tests
         assert response.status_code == 200
@@ -49,6 +46,7 @@ class TestProductInfoAPI:
         assert 'name' in data
 
     def test_api_invalid_barcode_rejected(self):
-        response = self.client.get('/api/product/', {'barcode': 'invalid_code'})
+        url = reverse('product_info_api')
+        response = self.client.get(url, {'barcode': 'invalid_code'})
         assert response.status_code == 400
         assert "error" in response.json()

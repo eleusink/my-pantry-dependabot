@@ -4,84 +4,73 @@ from django.utils import timezone
 import datetime
 from django.contrib.auth import get_user_model
 from Inventory.models import Ingredient
-from django.test import TestCase
+from decimal import Decimal
 
 User = get_user_model()
 
-class IngredientModelTests(TestCase):
-    def test_negative_quantity_validation(self):
-        item = Ingredient(
-            name='Bad Milk',
-            quantity='-1.00',
-            date_expired='2026-03-20',
-            food_group='DA',
-            unit_measurement='L',
-            date_obtained='2026-03-02',
-        )
-        with self.assertRaises(ValidationError):
-            item.full_clean()
+@pytest.fixture
+def base_user(db):
+    """Fixture to ensure a user exists for testing DB operations safely."""
+    return User.objects.create_user('testuser', 'test@test.com', 'pwd123')
 
-    def test_zero_quantity_validation(self):
-        item = Ingredient(
-            name='Empty Box',
-            quantity='0.00',
-            date_expired='2026-03-20',
-            food_group='OT',
-            unit_measurement='BX',
-            date_obtained='2026-03-02',
-        )
-        with self.assertRaises(ValidationError):
-            item.full_clean()
+@pytest.fixture
+def base_ingredient_data():
+    """Returns a dictionary of clean base data. Use for Simple tests."""
+    return {
+        'name': 'Good Milk',
+        'quantity': Decimal('1.00'),
+        'date_expired': '2026-03-20',
+        'food_group': 'DA',
+        'unit_measurement': 'L',
+        'date_obtained': '2026-03-02',
+    }
 
-    def test_blank_name_validation(self):
-        item = Ingredient(
-            name='',
-            quantity='2.00',
-            date_expired='2026-03-20',
-            food_group='DA',
-            unit_measurement='L',
-            date_obtained='2026-03-02',
-        )
-        with self.assertRaises(ValidationError):
-            item.full_clean()
 
-    def test_expiration_date_in_past_validation(self):
-        yesterday = timezone.now().date() - datetime.timedelta(days=1)
-        item = Ingredient(
-            name='Old Bread',
-            quantity='1.00',
-            date_expired=yesterday,
-            food_group='GR',
-            unit_measurement='A',
-            date_obtained='2026-03-02',
-        )
-        with self.assertRaises(ValidationError):
-            item.full_clean()
+def test_negative_quantity_validation(base_ingredient_data):
+    base_ingredient_data['quantity'] = Decimal('-1.00')
+    item = Ingredient(**base_ingredient_data)
+    with pytest.raises(ValidationError):
+        item.full_clean()
 
-    def test_minutes_remaining_for_expired_item(self):
-        user = User.objects.create_user('testuser', 'test@test.com', 'pwd123')
-        yesterday = timezone.now().date() - datetime.timedelta(days=1)
-        item = Ingredient.objects.create(
-            name='Expired Yogurt',
-            quantity='1.00',
-            date_expired=yesterday,
-            food_group='DA',
-            unit_measurement='A',
-            date_obtained='2026-03-02',
-            user=user
-        )
-        self.assertEqual(item.minutes_remaining, 0)
+def test_zero_quantity_validation(base_ingredient_data):
+    base_ingredient_data['quantity'] = Decimal('0.00')
+    item = Ingredient(**base_ingredient_data)
+    with pytest.raises(ValidationError):
+        item.full_clean()
 
-    def test_minutes_remaining_for_future_item(self):
-        user = User.objects.create_user('testuser2', 'test2@test.com', 'pwd123')
-        tomorrow = timezone.now().date() + datetime.timedelta(days=1)
-        item = Ingredient.objects.create(
-            name='Fresh Apple',
-            quantity='1.00',
-            date_expired=tomorrow,
-            food_group='FR',
-            unit_measurement='A',
-            date_obtained='2026-03-02',
-            user=user
-        )
-        self.assertEqual(item.minutes_remaining, 1440)
+def test_blank_name_validation(base_ingredient_data):
+    base_ingredient_data['name'] = ''
+    item = Ingredient(**base_ingredient_data)
+    with pytest.raises(ValidationError):
+        item.full_clean()
+
+def test_expiration_date_in_past_validation(base_ingredient_data):
+    yesterday = timezone.now().date() - datetime.timedelta(days=1)
+    base_ingredient_data['date_expired'] = yesterday
+    item = Ingredient(**base_ingredient_data)
+    with pytest.raises(ValidationError):
+        item.full_clean()
+
+
+@pytest.mark.django_db
+def test_minutes_remaining_for_expired_item(base_user, base_ingredient_data):
+    yesterday = timezone.now().date() - datetime.timedelta(days=1)
+    base_ingredient_data['user'] = base_user
+    base_ingredient_data['date_expired'] = yesterday
+    
+    item = Ingredient.objects.create(**base_ingredient_data)
+    assert item.minutes_remaining == 0
+
+
+@pytest.mark.django_db
+def test_minutes_remaining_for_future_item(base_user, base_ingredient_data):
+    tomorrow = timezone.now().date() + datetime.timedelta(days=1)
+    base_ingredient_data['user'] = base_user
+    base_ingredient_data['date_expired'] = tomorrow
+    
+    item = Ingredient.objects.create(**base_ingredient_data)
+    assert item.minutes_remaining == 1440
+    
+    # Suggestion 7: Assertions on exact Decimal types
+    assert item.quantity == Decimal("1.00")
+    assert item.date_expired == tomorrow
