@@ -1,4 +1,4 @@
-# Core Web Framework & Dependencies
+# Framework & Dependencies
 Django==4.2.11
 asgiref==3.7.2       # ASGI specs, standard for Django async operations
 sqlparse==0.4.4      # SQL parser, required by Django's ORM
