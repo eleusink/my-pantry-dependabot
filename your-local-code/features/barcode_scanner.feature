@@ -14,8 +14,8 @@ Feature: Barcode Scanner and Product Lookup
     And the product name field should be automatically filled with the fetched name
     And the product quantity field should be automatically filled with the fetched quantity
 
-  Scenario: User inputs an invalid or non-existent barcode
+  Scenario: User submits an unrecognised barcode
     When I type an invalid barcode "000000000000"
     And I submit the barcode for lookup
-    Then an error is displayed to the user
+    Then the system tells the user the barcode was not found
     And the form highlights the barcode field as invalid

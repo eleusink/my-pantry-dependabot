@@ -59,6 +59,16 @@ def before_all(context):
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "MyPantry.settings")
     os.environ.setdefault("DJANGO_SECRET_KEY", "test-secret-key-for-behave")
 
+    # Guard against double-initialization: behave-django calls django.setup()
+    # internally, but some CI runners import models in step files *before*
+    # behave-django finishes its own setup, which raises an AppRegistryNotReady
+    # error.  Calling it here explicitly — guarded by settings.configured —
+    # ensures models are safe to import regardless of import order.
+    import django
+    from django.conf import settings as dj_settings
+    if not dj_settings.configured:
+        django.setup()
+
 
 def after_all(context):
     """No-op; browser teardown is handled per-scenario.
@@ -88,7 +98,9 @@ def before_scenario(context, scenario):
     username = f"test_{uuid.uuid4().hex}"
     context.user = User.objects.create_user(username=username, password="behave_password_123")
 
-    # Django test client (used by non-browser steps like ingredient_steps.py)
+    # Django test client — kept because ingredient_steps.py uses context.client
+    # for non-browser scenario assertions (e.g. "I am on the home page").
+    # Barcode scenarios do not use this client; Splinter drives those flows.
     context.client = Client()
     context.client.force_login(context.user)
 

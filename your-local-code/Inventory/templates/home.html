@@ -32,7 +32,7 @@
 					  <button type="button" id="manual-submit-btn" style="padding: 6px 12px; margin-left: 5px;">Search</button>
 				  </div>
 
-				  <p id="scanner-status" style="display: none; color: #555; font-style: italic; margin: 5px 0; font-size: 0.9em;"></p>
+				  <p id="scanner-status" aria-live="polite" style="display: none; color: #555; font-style: italic; margin: 5px 0; font-size: 0.9em;"></p>
 				  <div id="reader" style="width: 100%; max-width: 400px; margin: 0 auto; display: none; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
 			  </div>
 
@@ -397,6 +397,8 @@
 		});
 
 		function searchProductByBarcode(decodedText) {
+			// Reset state from any previous lookup before starting a new one
+			statusText.removeAttribute('data-status');
 			statusText.textContent = `Searching for product... (Barcode: ${decodedText})`;
 			statusText.style.color = "blue";
 			statusText.style.display = 'block';

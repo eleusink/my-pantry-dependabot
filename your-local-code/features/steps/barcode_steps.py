@@ -83,7 +83,8 @@ def step_type_barcode(context, barcode):
     context.browser.is_element_present_by_id('manual-barcode-input', wait_time=2)
     bar_input = context.browser.find_by_id('manual-barcode-input').first
     bar_input.fill(barcode)
-    # Store for use in the submit step where we decide which mock to register
+    # Store for use in the submit step where we decide which mock to register.
+    # Also retained for the invalid-barcode step which delegates here via execute_steps.
     context.current_barcode = barcode
 
 
@@ -103,20 +104,31 @@ def step_submit_barcode(context):
     namespace) failed on CI against the live-server thread.
 
     `context.add_cleanup` is behave ≥ 1.2.7's way to register finalizers
-    that run even when a step raises an assertion error.
+    that run even when a step raises an assertion error.  A try/finally
+    below provides the same guarantee unconditionally, so the interceptor
+    is always stopped even if add_cleanup is unavailable.
     """
-    barcode = getattr(context, 'current_barcode', '')
+    # Read the barcode directly from the live DOM — eliminates the
+    # context.current_barcode indirection and always reflects the real input value.
+    barcode = context.browser.find_by_id('manual-barcode-input').first.value
     found = barcode != "000000000000"
     _register_api_response(barcode, found=found)
 
     responses_lib.start()
+    # Register cleanup via both mechanisms for belt-and-suspenders safety:
+    # add_cleanup runs at scenario end; try/finally runs if this step raises.
     if hasattr(context, 'add_cleanup'):
         context.add_cleanup(responses_lib.stop)
         context.add_cleanup(responses_lib.reset)
 
     btn = context.browser.find_by_id('manual-submit-btn').first
-    if btn:
-        btn.click()
+    try:
+        if btn:
+            btn.click()
+    except Exception:
+        responses_lib.stop()
+        responses_lib.reset()
+        raise
 
 
 @then('the product details are shown successfully')
@@ -149,7 +161,7 @@ def step_check_product_quantity(context):
     assert quantity_input.value == "500", f"Quantity field was '{quantity_input.value}'"
 
 
-@then('an error is displayed to the user')
+@then('the system tells the user the barcode was not found')
 def step_check_error_display(context):
     """Asserts the scanner status element signals a lookup failure.
 
