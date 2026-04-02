@@ -1,8 +1,10 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.db import transaction
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework import status, serializers
+from rest_framework import status
+from .serializers import BarcodeRequestSerializer
 from .utils import fetch_product_info, normalize_unit, ProductNotFoundError, ProductAPIError
 from django.core.exceptions import ObjectDoesNotExist
 from .forms import IngredientForm, CustomUserChangeForm
@@ -50,7 +52,7 @@ def home(request):
         form = IngredientForm()
 
     # Query ingredients from database
-    items = Ingredient.objects.filter(user=request.user)
+    items = Ingredient.objects.select_related('user').filter(user=request.user)
     return render(request, 'home.html', {
         'form': form,
         'items': items,
@@ -93,16 +95,17 @@ def edit_ingredient(request):
         ingredient_id = request.POST.get('ingredient_id')
 
         try:
-            ingredient = Ingredient.objects.get(id=ingredient_id, user=request.user)
-            form = IngredientForm(request.POST, instance=ingredient)
-            if form.is_valid():
-                updated_item = form.save(commit=False)
-                updated_item.user = request.user
-                updated_item.save()
-                messages.success(request, 'Ingredient successfully updated')
-            else:
-                # print("[EDIT] FORM ERROR:", form.errors) # Debugging Code
-                messages.error(request, 'ERROR: Failed to update ingredient')
+            with transaction.atomic():
+                ingredient = Ingredient.objects.select_for_update().get(id=ingredient_id, user=request.user)
+                form = IngredientForm(request.POST, instance=ingredient)
+                if form.is_valid():
+                    updated_item = form.save(commit=False)
+                    updated_item.user = request.user
+                    updated_item.save()
+                    messages.success(request, 'Ingredient successfully updated')
+                else:
+                    # print("[EDIT] FORM ERROR:", form.errors) # Debugging Code
+                    messages.error(request, 'ERROR: Failed to update ingredient')
 
         except ObjectDoesNotExist:
             messages.error(request, 'ERROR: Ingredient not found. It may have been deleted.')
@@ -133,11 +136,9 @@ def delete_ingredient(request, item_id):
         Always redirects to the 'home' route. Reloads page.
     """
     if request.method == 'POST':
-        # Find object of 404 if not found
-        item = get_object_or_404(Ingredient, id=item_id, user=request.user)
-        item.delete()
-        messages.success(request, 'Ingredient successfully deleted.')
-        return redirect('home')
+        deleted_count, _ = Ingredient.objects.filter(id=item_id, user=request.user).delete()
+        if deleted_count > 0:
+            messages.success(request, 'Ingredient successfully deleted.')
 
     return redirect('home')
 
@@ -156,22 +157,6 @@ def account_settings(request):
     return render(request, "account_settings.html", {"form": form})
 
 
-class BarcodeRequestSerializer(serializers.Serializer):
-    """Validates that a barcode matches standard EAN or UPC lengths.
-
-    Enforces that incoming requests strictly provide 8, 12, or 13 
-    numerical digits before allowing the proxy fetch to proceed.
-
-    Attributes:
-        barcode: A RegexField string checking for exact EAN/UPC lengths.
-    """
-    # Note: Added grouping parentheses to ensure the ^ and $ anchors apply beautifully to all OR clauses!
-    barcode = serializers.RegexField(
-        regex=r'^(\d{8}|\d{12}|\d{13})$',
-        error_messages={
-            "invalid": "A valid barcode must be exactly 8, 12, or 13 numerical digits."
-        }
-    )
 
 @api_view(['GET', 'POST'])
 def product_info_api(request) -> Response:
