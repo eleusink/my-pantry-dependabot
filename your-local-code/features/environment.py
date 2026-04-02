@@ -27,11 +27,12 @@ def before_all(context):
     options = Options()
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
+    options.add_argument('--disable-gpu')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--window-size=1920,1080')
     
-    # Using built-in Selenium 4 driver management to avoid local testing errors on windows
-    context.browser = Browser('chrome', options=options)
+    # Using built-in Selenium 4 driver management with kwargs fix for splinter
+    context.browser = Browser('chrome', incognito=True, **{'options': options})
 
 def after_all(context):
     """Executes teardown operations after all Behave features are run.
@@ -41,8 +42,14 @@ def after_all(context):
     Args:
         context (behave.runner.Context): The global context.
     """
-    if hasattr(context, 'browser'):
-        context.browser.quit()
+    if hasattr(context, 'browser') and context.browser:
+        try:
+            # Check if connection is still alive before quitting
+            # Selenium can throw a disconnected error if it died.
+            if context.browser.driver.session_id:
+                context.browser.quit()
+        except Exception:
+            pass
 
 
 def before_scenario(context, scenario):
@@ -59,9 +66,9 @@ def before_scenario(context, scenario):
             state (such as the active user and authenticated client) across steps.
         scenario (behave.model.Scenario): The current scenario being executed.
     """
-    # Generate a completely unique user for this specific test
+    # Generate a completely unique user with a firm password for tests
     username = f"test_{uuid.uuid4().hex}"
-    context.user = User.objects.create(username=username)
+    context.user = User.objects.create_user(username=username, password="behave_password_123")
     
     # Create an isolated client and force login instantly
     context.client = Client()

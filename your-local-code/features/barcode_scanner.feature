@@ -3,7 +3,7 @@ Feature: Barcode Scanner and Product Lookup
   I want to be able to scan or manually input a barcode
   So that the system can automatically fetch and populate the product information
 
-  Scenario: User smoothly inputs a valid UPC using the manual barcode toggle
+  Scenario: User enters a valid UPC manually
     Given I visit the add ingredient page
     And I toggle the manual barcode input
     When I type the barcode "041192108228"
@@ -18,4 +18,4 @@ Feature: Barcode Scanner and Product Lookup
     When I type an invalid barcode "000000000000"
     And I submit the barcode for lookup
     Then the system should gracefully display a "Product Not Found" error
-    And the barcode input form should flash red to indicate a boundary error
+    And the form highlights the barcode field as invalid
