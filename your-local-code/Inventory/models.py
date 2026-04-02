@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from .constants import NAME_REGEX
 import re
 
 
@@ -87,7 +88,7 @@ class Ingredient(models.Model):
         """Performs validation checks on all applicable fields."""
         if self.name == "":
             raise ValidationError("What exactly are you putting in?")
-        if not re.match(r'^[A-Za-z\s]+$', self.name):
+        if not re.match(NAME_REGEX, self.name):
             raise ValidationError("Name must contain only letters and spaces")
             
         if self.quantity is not None and self.quantity <= 0:

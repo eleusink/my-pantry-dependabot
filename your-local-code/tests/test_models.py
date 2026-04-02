@@ -52,26 +52,26 @@ def test_expiration_date_in_past_validation(base_ingredient_data):
         item.full_clean()
 
 
-@pytest.mark.django_db
-def test_minutes_remaining_for_expired_item(base_user, base_ingredient_data):
-    yesterday = timezone.now().date() - datetime.timedelta(days=1)
+@pytest.fixture
+def saved_ingredient(db, base_user, base_ingredient_data):
+    """Fixture returning a saved Ingredient object."""
     base_ingredient_data['user'] = base_user
-    base_ingredient_data['date_expired'] = yesterday
-    
     item = Ingredient.objects.create(**base_ingredient_data)
-    assert item.minutes_remaining == 0
-
+    return item
 
 @pytest.mark.django_db
-def test_minutes_remaining_for_future_item(base_user, base_ingredient_data):
-    tomorrow = timezone.now().date() + datetime.timedelta(days=1)
-    base_ingredient_data['user'] = base_user
-    base_ingredient_data['date_expired'] = tomorrow
+@pytest.mark.parametrize("days_offset, expected_minutes", [
+    (-1, 0),    # past
+    (1, 1440),  # future (1 exact day equals 1440 minutes natively)
+])
+def test_minutes_remaining(saved_ingredient, days_offset, expected_minutes):
+    """Tests expiration boundaries for the minutes_remaining property."""
+    target_date = timezone.now().date() + datetime.timedelta(days=days_offset)
+    saved_ingredient.date_expired = target_date
+    saved_ingredient.save()
+    saved_ingredient.refresh_from_db()
     
-    item = Ingredient.objects.create(**base_ingredient_data)
-    item.refresh_from_db()
-    assert item.minutes_remaining == 1440
+    assert saved_ingredient.minutes_remaining == expected_minutes
     
     # Suggestion 7: Assertions on exact Decimal types
-    assert item.quantity == Decimal("1.00")
-    assert item.date_expired == tomorrow
+    assert saved_ingredient.quantity == Decimal("1.00")

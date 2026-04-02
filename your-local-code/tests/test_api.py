@@ -31,7 +31,7 @@ class TestProductInfoAPI:
 
     def test_canary_live_api_call(self):
         """
-        CANARY TEST: This explicitly tests the real Open Food Facts Staging API
+        Explicitly tests the real Open Food Facts Staging API
         to confirm infrastructure isn't blocking outgoing traffic and the payload format hasn't changed.
         Using a known UPC: 041192108228 (might map to mac & cheese or similar test item).
         """
