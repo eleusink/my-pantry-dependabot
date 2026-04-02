@@ -16,28 +16,16 @@ from .models import Ingredient
 
 @login_required
 def home(request):
-    """
-    Display all inventory items and handle creation of new items.
+    """Displays all inventory items and handles creation of new Ingredient records.
+
+    Args:
+        request: The incoming Django HttpRequest object.
 
     Returns:
-        HttpResponse: Renders home.html on GET with:
-
-        * form: Empty IngredientForm instance.
-        * items: QuerySet of all Ingredient records.
-
-        HttpResponseRedirect: Redirects to 'home' after a successful POST.
-        
-        HttpResponse: Re-renders home.html with errors if POST data is invalid.
-
-    Notes:
-        **Accepted Methods:**
-
-        * GET: Returns the inventory list page.
-        * POST: Validates and saves a new Ingredient record.
-
-        **Redirects:**
-
-        On successful POST, redirects to the 'home' route. Reloads page.
+        On GET: renders ``home.html`` with an empty form and the user's
+        ingredient queryset.
+        On valid POST: redirects to ``home`` after saving the new item.
+        On invalid POST: re-renders ``home.html`` with validation errors.
     """
     # Handle form submission
     if request.method == 'POST':
@@ -59,6 +47,20 @@ def home(request):
     })
 
 def signup(request):
+    """Handles new user registration.
+
+    Renders the signup form on GET and creates a new user account on a
+    valid POST, logging the user in immediately afterwards.
+
+    Args:
+        request: The incoming Django HttpRequest object.
+
+    Returns:
+        On valid POST: redirects to ``home`` after creating and logging in
+        the new user.
+        On GET or invalid POST: renders ``registration/signup.html`` with
+        the UserCreationForm.
+    """
     if request.method == "POST":
         form = UserCreationForm(request.POST)
         if form.is_valid():
@@ -73,23 +75,32 @@ def signup(request):
 
 
 def about(request):
-    # Render the about page.
+    """Renders the static about page.
+
+    Args:
+        request: The incoming Django HttpRequest object.
+
+    Returns:
+        An HttpResponse rendering ``about.html``.
+    """
     return render(request, 'about.html')
 
 
 @login_required
 def edit_ingredient(request):
-    """
-    Editing Ingredients in modal, handles / cleans user input
+    """Edits an existing Ingredient record in an atomic, race-safe transaction.
+
+    Wraps the read-modify-write cycle in ``transaction.atomic()`` and uses
+    ``select_for_update()`` to acquire a row-level lock, preventing concurrent
+    requests from clobbering each other's changes.
+
+    Args:
+        request: The incoming Django HttpRequest object. The POST body must
+            include ``ingredient_id`` identifying the row to update.
 
     Returns:
-        home: redirects to home.html using URL path
-
-    Accepted Methods:
-        POST: Validates and saves an edited Ingredient record.
-
-    Redirects:
-        On successful POST, redirects to the 'home' route. Reloads page.
+        Always redirects to ``home``. A Django messages entry is added to
+        the request to communicate success or failure to the template.
     """
     if request.method == 'POST':
         ingredient_id = request.POST.get('ingredient_id')
@@ -145,6 +156,19 @@ def delete_ingredient(request, item_id):
 
 @login_required
 def account_settings(request):
+    """Allows the logged-in user to update their profile information.
+
+    Renders a restricted change form that exposes only safe profile fields
+    (username, name, email) and omits the password field.
+
+    Args:
+        request: The incoming Django HttpRequest object.
+
+    Returns:
+        On valid POST: redirects to ``home`` after saving the profile update.
+        On GET or invalid POST: renders ``account_settings.html`` with the
+        CustomUserChangeForm.
+    """
     if request.method == "POST":
         form = CustomUserChangeForm(request.POST, instance=request.user)
         if form.is_valid():
