@@ -5,9 +5,9 @@ Feature: Barcode Scanner and Product Lookup
 
   Background:
     Given I visit the add ingredient page
-    And I choose to enter the barcode manually
 
   Scenario: User enters a valid UPC manually
+    Given I choose to enter the barcode manually
     When I type the barcode "041192108228"
     And I submit the barcode for lookup
     Then the product details are shown successfully
@@ -15,6 +15,7 @@ Feature: Barcode Scanner and Product Lookup
     And the product quantity field should be automatically filled with the fetched quantity
 
   Scenario: User submits an unrecognised barcode
+    Given I choose to enter the barcode manually
     When I type an invalid barcode "000000000000"
     And I submit the barcode for lookup
     Then the system tells the user the barcode was not found

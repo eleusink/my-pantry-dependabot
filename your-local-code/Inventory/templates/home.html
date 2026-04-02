@@ -397,8 +397,10 @@
 		});
 
 		function searchProductByBarcode(decodedText) {
-			// Reset state from any previous lookup before starting a new one
-			statusText.removeAttribute('data-status');
+			// Reset state from any previous lookup before starting a new one.
+			// delete dataset.status is symmetric with how we set it (dataset.status = ...)
+			// and avoids the undefined vs empty-string ambiguity of removeAttribute.
+			delete statusText.dataset.status;
 			statusText.textContent = `Searching for product... (Barcode: ${decodedText})`;
 			statusText.style.color = "blue";
 			statusText.style.display = 'block';
