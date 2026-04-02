@@ -115,36 +115,34 @@ def step_submit_barcode(context):
     _register_api_response(barcode, found=found)
 
     responses_lib.start()
-    # Register cleanup via both mechanisms for belt-and-suspenders safety:
-    # add_cleanup runs at scenario end; try/finally runs if this step raises.
+    # add_cleanup runs at scenario end regardless of pass/fail — including
+    # failures in downstream Then steps — making it the right single mechanism.
     if hasattr(context, 'add_cleanup'):
         context.add_cleanup(responses_lib.stop)
         context.add_cleanup(responses_lib.reset)
 
     btn = context.browser.find_by_id('manual-submit-btn').first
-    try:
-        if btn:
-            btn.click()
-    except Exception:
-        responses_lib.stop()
-        responses_lib.reset()
-        raise
+    if btn:
+        btn.click()
 
 
 @then('the product details are shown successfully')
 def step_fetch_success(context):
     """Asserts the scanner status element signals a successful lookup.
 
-    Checks the data-status attribute set by the JS fetch handler rather than
-    matching on display text — decouples the test from wording changes in
-    the template.
+    Uses an XPath attribute predicate to wait until data-status='success' is set,
+    rather than a two-step is_element_present + attribute read.  The two-step
+    pattern has a race condition: the assertion evaluates X==Y before JS finishes
+    setting the attribute, but the f-string message evaluates *after* it has been
+    set — yielding the confusing 'Expected success, got success' failure on CI.
     """
-    assert context.browser.is_element_present_by_id('scanner-status', wait_time=5)
-    status_el = context.browser.find_by_id('scanner-status').first
-    assert status_el.visible
-    # data-status="success" is set by the JS .then() handler in home.html
-    assert status_el['data-status'] == 'success', \
-        f"Expected data-status='success', got '{status_el['data-status']}'"
+    found = context.browser.is_element_present_by_xpath(
+        "//p[@id='scanner-status'][@data-status='success']", wait_time=5
+    )
+    assert found, (
+        f"Timed out waiting for data-status='success'. "
+        f"Current value: '{context.browser.find_by_id('scanner-status').first['data-status']}'"
+    )
 
 
 @then('the product name field should be automatically filled with the fetched name')
@@ -165,15 +163,17 @@ def step_check_product_quantity(context):
 def step_check_error_display(context):
     """Asserts the scanner status element signals a lookup failure.
 
-    Checks the data-status attribute set by the JS fetch .catch() handler
-    rather than matching on display text — decouples the test from wording.
+    Uses an XPath attribute predicate to wait until data-status='error' is set.
+    See step_fetch_success for why the two-step is_element_present + read pattern
+    produces a misleading 'Expected error, got error' failure message on CI.
     """
-    assert context.browser.is_element_present_by_id('scanner-status', wait_time=5)
-    error_el = context.browser.find_by_id('scanner-status').first
-    assert error_el.visible
-    # data-status="error" is set by the JS .catch() handler in home.html
-    assert error_el['data-status'] == 'error', \
-        f"Expected data-status='error', got '{error_el['data-status']}'"
+    found = context.browser.is_element_present_by_xpath(
+        "//p[@id='scanner-status'][@data-status='error']", wait_time=5
+    )
+    assert found, (
+        f"Timed out waiting for data-status='error'. "
+        f"Current value: '{context.browser.find_by_id('scanner-status').first['data-status']}'"
+    )
 
 
 @then('the form highlights the barcode field as invalid')

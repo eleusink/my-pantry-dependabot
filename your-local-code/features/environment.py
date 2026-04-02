@@ -25,8 +25,7 @@ def _make_browser() -> Browser:
     options.add_argument('--disable-gpu')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--window-size=1920,1080')
-    # Pass options via **kwargs; Splinter's Browser() requires this form
-    return Browser('chrome', **{'options': options})
+    return Browser('chrome', options=options)
 
 
 def _quit_browser(browser: Browser) -> None:
@@ -58,16 +57,6 @@ def before_all(context):
     """
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "MyPantry.settings")
     os.environ.setdefault("DJANGO_SECRET_KEY", "test-secret-key-for-behave")
-
-    # Guard against double-initialization: behave-django calls django.setup()
-    # internally, but some CI runners import models in step files *before*
-    # behave-django finishes its own setup, which raises an AppRegistryNotReady
-    # error.  Calling it here explicitly — guarded by settings.configured —
-    # ensures models are safe to import regardless of import order.
-    import django
-    from django.conf import settings as dj_settings
-    if not dj_settings.configured:
-        django.setup()
 
 
 def after_all(context):
