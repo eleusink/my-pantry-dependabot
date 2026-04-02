@@ -3,6 +3,8 @@ import os
 import uuid
 from django.contrib.auth import get_user_model
 from django.test import Client
+from splinter import Browser
+from selenium.webdriver.chrome.options import Options
 
 User = get_user_model()
 
@@ -19,6 +21,28 @@ def before_all(context):
     """
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "MyPantry.settings")
     os.environ.setdefault("DJANGO_SECRET_KEY", "test-secret-key-for-behave")
+
+    # Initialize a headless splinter browser for UI tests
+    # Using headless Chrome to run in isolated Docker environments safely
+    options = Options()
+    options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--window-size=1920,1080')
+    
+    # Using built-in Selenium 4 driver management to avoid local testing errors on windows
+    context.browser = Browser('chrome', options=options)
+
+def after_all(context):
+    """Executes teardown operations after all Behave features are run.
+
+    Ensures the Splinter browser instance is properly closed to free memory.
+
+    Args:
+        context (behave.runner.Context): The global context.
+    """
+    if hasattr(context, 'browser'):
+        context.browser.quit()
 
 
 def before_scenario(context, scenario):
