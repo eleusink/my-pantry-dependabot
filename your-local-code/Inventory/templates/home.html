@@ -412,6 +412,7 @@
 				.then(data => {
 					statusText.textContent = "Product loaded successfully. Feel free to edit below.";
 					statusText.style.color = "green";
+					statusText.dataset.status = "success";  // Stable hook for automated tests
 					if (!html5QrcodeScanner && manualContainer.style.display === 'none') startBtn.style.display = 'inline-block';
 					
 					// Populate the Add Item form cleanly
@@ -431,6 +432,7 @@
 				.catch(err => {
 					statusText.textContent = `Error: ${err.message}`;
 					statusText.style.color = "red";
+					statusText.dataset.status = "error";  // Stable hook for automated tests
 					if (!html5QrcodeScanner && manualContainer.style.display === 'none') startBtn.style.display = 'inline-block';
 
 					// Clear populated fields to emphasize the product wasn't found

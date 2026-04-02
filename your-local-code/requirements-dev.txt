@@ -21,4 +21,4 @@ selenium==4.18.1
 webdriver-manager==4.0.1
 
 # HTTP-level mocking - intercepts requests at the socket layer (works across threads)
-responses==0.26.0
+responses~=0.26
