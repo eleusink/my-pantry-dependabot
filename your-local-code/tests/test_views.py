@@ -87,7 +87,7 @@ class TestInventoryViews:
         assert Ingredient.objects.count() == starting_count
 
     def test_edit_item_returns_302_and_count_stays_same(self):
-        """Asserts that a valid edit redirects without changing the total record count."""
+        """Asserts that a valid edit redirects to home without changing the total record count."""
         starting_count = Ingredient.objects.count()
         response = self.client.post(reverse('edit_item'), {
             'name': 'Apples',
@@ -98,6 +98,7 @@ class TestInventoryViews:
             'date_obtained': '2026-03-05',
         })
         assert response.status_code == 302
+        assert response['Location'] == reverse('home')
         assert Ingredient.objects.count() == starting_count
 
     def test_edit_item_updates_data(self):
@@ -128,7 +129,7 @@ class TestInventoryViews:
         assert self.item.name == original_name
 
     def test_edit_nonexistent_item_graceful(self):
-        """Asserts that editing a missing ingredient redirects without raising an error."""
+        """Asserts that editing a missing ingredient redirects and surfaces an error message."""
         response = self.client.post(reverse('edit_item'), {
             'name': 'Apples',
             'quantity': '5.00',
@@ -136,8 +137,11 @@ class TestInventoryViews:
             'food_group': 'FR',
             'unit_measurement': 'A',
             'date_obtained': '2026-03-05',
-        })
-        assert response.status_code == 302
+        }, follow=True)
+        assert response.status_code == 200
+        messages = list(response.context['messages'])
+        assert len(messages) >= 1
+        assert any('not found' in str(m).lower() or 'error' in str(m).lower() for m in messages)
 
     def test_edit_preserves_unchanged_fields(self):
         """Asserts that an edit updating only the name leaves the quantity unchanged."""

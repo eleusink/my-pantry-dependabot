@@ -114,9 +114,10 @@ class Ingredient(models.Model):
         if self.quantity is not None and self.quantity <= 0:
             raise ValidationError("Quantities can't be negative.")
 
-        obtained_date = self.date_obtained or timezone.localdate()
-
+        # Cache 'today' once so both checks use the same instant, which also
+        # makes timezone.now() easier to mock in unit tests.
         today = timezone.now().date()
+        obtained_date = self.date_obtained or today
 
         if self.date_expired and self.date_expired < today:
             raise ValidationError("Expiration date cannot be in the past.")
