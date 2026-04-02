@@ -1,6 +1,10 @@
+"""Unit tests for the Inventory application's Django views.
+
+Covers the home list view, ingredient creation, editing, and deletion,
+as well as form-level validation scenarios.
+"""
 import pytest
 from django.test import Client
-import pytest
 from django.urls import reverse
 from django.utils import timezone
 import datetime
@@ -9,11 +13,14 @@ from Inventory.models import Ingredient
 
 User = get_user_model()
 
+
 @pytest.mark.django_db
 class TestInventoryViews:
+    """Tests for the core inventory CRUD views (home, edit, delete)."""
+
     def setup_method(self):
+        """Creates an authenticated client and a seed Ingredient for each test."""
         self.client = Client()
-    # original setUp
         self.user = User.objects.create_user('testuser', 'test@example.com', 'password123')
         self.client.force_login(self.user)
         future_date = (timezone.now() + datetime.timedelta(days=365)).strftime('%Y-%m-%d')
@@ -29,10 +36,12 @@ class TestInventoryViews:
         )
 
     def test_home_list_view_returns_200(self):
+        """Asserts that the home page loads successfully for an authenticated user."""
         response = self.client.get(reverse('home'))
         assert response.status_code == 200
 
     def test_add_item_returns_302_and_increases_count(self):
+        """Asserts that a valid POST to home creates a new Ingredient record."""
         starting_count = Ingredient.objects.count()
         future_date = (timezone.now() + datetime.timedelta(days=365)).strftime('%Y-%m-%d')
         obtained_date = (timezone.now() - datetime.timedelta(days=10)).strftime('%Y-%m-%d')
@@ -48,18 +57,21 @@ class TestInventoryViews:
         assert Ingredient.objects.count() == starting_count + 1
 
     def test_delete_item_returns_302_and_decreases_count(self):
+        """Asserts that a POST to delete_item removes the record from the database."""
         starting_count = Ingredient.objects.count()
         response = self.client.post(reverse('delete_item', args=[self.item.id]))
         assert response.status_code == 302
         assert Ingredient.objects.count() == starting_count - 1
 
     def test_delete_item_get_does_not_delete(self):
+        """Asserts that a GET request to delete_item is a no-op (safe idempotency)."""
         starting_count = Ingredient.objects.count()
         response = self.client.get(reverse('delete_item', args=[self.item.id]))
         assert response.status_code == 302
         assert Ingredient.objects.count() == starting_count
 
     def test_invalid_add_does_not_increase_count(self):
+        """Asserts that a POST with missing required fields does not create a record."""
         starting_count = Ingredient.objects.count()
         future_date = (timezone.now() + datetime.timedelta(days=365)).strftime('%Y-%m-%d')
         obtained_date = (timezone.now() - datetime.timedelta(days=10)).strftime('%Y-%m-%d')
@@ -75,6 +87,7 @@ class TestInventoryViews:
         assert Ingredient.objects.count() == starting_count
 
     def test_edit_item_returns_302_and_count_stays_same(self):
+        """Asserts that a valid edit redirects to home without changing the total record count."""
         starting_count = Ingredient.objects.count()
         response = self.client.post(reverse('edit_item'), {
             'name': 'Apples',
@@ -85,9 +98,11 @@ class TestInventoryViews:
             'date_obtained': '2026-03-05',
         })
         assert response.status_code == 302
+        assert response['Location'] == reverse('home')
         assert Ingredient.objects.count() == starting_count
 
     def test_edit_item_updates_data(self):
+        """Asserts that a valid edit POST persists the new field values to the database."""
         original_name = self.item.name
         future_date = (timezone.now() + datetime.timedelta(days=365)).strftime('%Y-%m-%d')
         obtained_date = (timezone.now() - datetime.timedelta(days=10)).strftime('%Y-%m-%d')
@@ -106,6 +121,7 @@ class TestInventoryViews:
         assert self.item.name == 'Apples'
 
     def test_edit_item_get_does_not_modify(self):
+        """Asserts that a GET to edit_item is a no-op and does not mutate data."""
         original_name = self.item.name
         response = self.client.get(reverse('edit_item'))
         assert response.status_code == 302
@@ -113,6 +129,7 @@ class TestInventoryViews:
         assert self.item.name == original_name
 
     def test_edit_nonexistent_item_graceful(self):
+        """Asserts that editing a missing ingredient redirects and surfaces an error message."""
         response = self.client.post(reverse('edit_item'), {
             'name': 'Apples',
             'quantity': '5.00',
@@ -120,10 +137,14 @@ class TestInventoryViews:
             'food_group': 'FR',
             'unit_measurement': 'A',
             'date_obtained': '2026-03-05',
-        })
-        assert response.status_code == 302
+        }, follow=True)
+        assert response.status_code == 200
+        messages = list(response.context['messages'])
+        assert len(messages) >= 1
+        assert any('not found' in str(m).lower() or 'error' in str(m).lower() for m in messages)
 
     def test_edit_preserves_unchanged_fields(self):
+        """Asserts that an edit updating only the name leaves the quantity unchanged."""
         original_quantity = self.item.quantity
         original_name = self.item.name
         future_date = (timezone.now() + datetime.timedelta(days=365)).strftime('%Y-%m-%d')
@@ -145,9 +166,11 @@ class TestInventoryViews:
 
 @pytest.mark.django_db
 class TestInventoryForms:
+    """Tests for form-level validation enforced through the edit view."""
+
     def setup_method(self):
+        """Creates an authenticated client and a seed Ingredient for each test."""
         self.client = Client()
-    # original setUp
         self.user = User.objects.create_user('testuser2', 'test2@example.com', 'password123')
         self.client.force_login(self.user)
         future_date = (timezone.now() + datetime.timedelta(days=365)).strftime('%Y-%m-%d')
@@ -163,6 +186,7 @@ class TestInventoryForms:
         )
 
     def test_invalid_edit_does_not_update(self):
+        """Asserts that a POST with a blank quantity leaves the record unchanged."""
         original_quantity = self.item.quantity
         future_date = (timezone.now() + datetime.timedelta(days=365)).strftime('%Y-%m-%d')
         obtained_date = (timezone.now() - datetime.timedelta(days=10)).strftime('%Y-%m-%d')
@@ -180,6 +204,7 @@ class TestInventoryForms:
         assert str(self.item.quantity) == str(original_quantity)
 
     def test_bad_name_does_not_update_data(self):
+        """Asserts that a name containing digits is rejected and the record is unchanged."""
         original_name = self.item.name
         future_date = (timezone.now() + datetime.timedelta(days=365)).strftime('%Y-%m-%d')
         obtained_date = (timezone.now() - datetime.timedelta(days=10)).strftime('%Y-%m-%d')
@@ -197,6 +222,7 @@ class TestInventoryForms:
         assert str(self.item.name) == str(original_name)
 
     def test_edit_with_negative_quantity_does_not_update(self):
+        """Asserts that a negative quantity is rejected and the record is unchanged."""
         original_quantity = self.item.quantity
         future_date = (timezone.now() + datetime.timedelta(days=365)).strftime('%Y-%m-%d')
         obtained_date = (timezone.now() - datetime.timedelta(days=10)).strftime('%Y-%m-%d')
@@ -214,9 +240,9 @@ class TestInventoryForms:
         assert str(self.item.quantity) == str(original_quantity)
 
     def test_edit_with_missing_date_obtained(self):
+        """Asserts that a blank date_obtained leaves the obtained date unchanged."""
         original_obtained = self.item.date_obtained
         future_date = (timezone.now() + datetime.timedelta(days=365)).strftime('%Y-%m-%d')
-        obtained_date = (timezone.now() - datetime.timedelta(days=10)).strftime('%Y-%m-%d')
         response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Salsa',
@@ -231,6 +257,7 @@ class TestInventoryForms:
         assert str(self.item.date_obtained) == str(original_obtained)
 
     def test_edit_obtained_after_expired(self):
+        """Asserts that an obtained date after the expiry date is rejected."""
         original_obtained = self.item.date_obtained
         response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
@@ -246,6 +273,7 @@ class TestInventoryForms:
         assert str(self.item.date_obtained) == str(original_obtained)
 
     def test_edit_expired_already_passed(self):
+        """Asserts that setting a past expiry date is rejected and the record is unchanged."""
         original_expired = self.item.date_expired
         yesterday = timezone.now().date() - datetime.timedelta(days=1)
         response = self.client.post(reverse('edit_item'), {
@@ -262,6 +290,7 @@ class TestInventoryForms:
         assert str(self.item.date_expired) == str(original_expired)
 
     def test_edit_boundary_expires_today(self):
+        """Asserts that a same-day expiry date (today) is accepted as valid."""
         today = timezone.now().date().isoformat()
         obtained = timezone.now().date() - datetime.timedelta(days=1)
         response = self.client.post(reverse('edit_item'), {
