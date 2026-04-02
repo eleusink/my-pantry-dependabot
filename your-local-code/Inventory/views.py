@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.db import transaction
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -51,7 +52,7 @@ def home(request):
         form = IngredientForm()
 
     # Query ingredients from database
-    items = Ingredient.objects.filter(user=request.user)
+    items = Ingredient.objects.select_related('user').filter(user=request.user)
     return render(request, 'home.html', {
         'form': form,
         'items': items,
@@ -94,16 +95,17 @@ def edit_ingredient(request):
         ingredient_id = request.POST.get('ingredient_id')
 
         try:
-            ingredient = Ingredient.objects.get(id=ingredient_id, user=request.user)
-            form = IngredientForm(request.POST, instance=ingredient)
-            if form.is_valid():
-                updated_item = form.save(commit=False)
-                updated_item.user = request.user
-                updated_item.save()
-                messages.success(request, 'Ingredient successfully updated')
-            else:
-                # print("[EDIT] FORM ERROR:", form.errors) # Debugging Code
-                messages.error(request, 'ERROR: Failed to update ingredient')
+            with transaction.atomic():
+                ingredient = Ingredient.objects.select_for_update().get(id=ingredient_id, user=request.user)
+                form = IngredientForm(request.POST, instance=ingredient)
+                if form.is_valid():
+                    updated_item = form.save(commit=False)
+                    updated_item.user = request.user
+                    updated_item.save()
+                    messages.success(request, 'Ingredient successfully updated')
+                else:
+                    # print("[EDIT] FORM ERROR:", form.errors) # Debugging Code
+                    messages.error(request, 'ERROR: Failed to update ingredient')
 
         except ObjectDoesNotExist:
             messages.error(request, 'ERROR: Ingredient not found. It may have been deleted.')
@@ -134,11 +136,9 @@ def delete_ingredient(request, item_id):
         Always redirects to the 'home' route. Reloads page.
     """
     if request.method == 'POST':
-        # Find object of 404 if not found
-        item = get_object_or_404(Ingredient, id=item_id, user=request.user)
-        item.delete()
-        messages.success(request, 'Ingredient successfully deleted.')
-        return redirect('home')
+        deleted_count, _ = Ingredient.objects.filter(id=item_id, user=request.user).delete()
+        if deleted_count > 0:
+            messages.success(request, 'Ingredient successfully deleted.')
 
     return redirect('home')
 

@@ -69,6 +69,7 @@ def test_minutes_remaining_for_future_item(base_user, base_ingredient_data):
     base_ingredient_data['date_expired'] = tomorrow
     
     item = Ingredient.objects.create(**base_ingredient_data)
+    item.refresh_from_db()
     assert item.minutes_remaining == 1440
     
     # Suggestion 7: Assertions on exact Decimal types
