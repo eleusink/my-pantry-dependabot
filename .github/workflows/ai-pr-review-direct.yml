@@ -51,6 +51,12 @@ jobs:
           fetch-depth: 0
           python-version: '3.12'
 
+      # python-version must be set on setup-python, not on checkout (checkout ignores it silently).
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Determine AI Model Based on Target Branch
         id: select-model
         run: |
@@ -72,6 +78,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           # 1. Grab the PR diff locally, explicitly excluding noisy/auto-generated files
+          # 1. Grab the PR diff locally, explicitly excluding noisy/auto-generated files.
           TARGET_BRANCH="${{ github.base_ref }}"
           git diff origin/$TARGET_BRANCH...HEAD -- \
             "$BASE_PATH/**" \
@@ -80,10 +87,19 @@ jobs:
             ":!$BASE_PATH/static/**" \
             ":!$BASE_PATH/**/migrations/**" \
             ":!$BASE_PATH/**/__pycache__/**" > pr_diff.txt
-            
-          # Grab the list of changed files for our routing logic
-          CHANGED_FILES=$(gh pr view $PR_NUMBER --json files -q '.files[].path')
-          
+
+          # Derive the changed-file list from the SAME git range as the diff above.
+          # Previously this used 'gh pr view --json files', which can diverge from the
+          # git merge-base diff when the target branch has been updated since the PR
+          # was opened, causing the routing logic and the actual diff to disagree.
+          CHANGED_FILES=$(git diff --name-only origin/$TARGET_BRANCH...HEAD -- \
+            "$BASE_PATH/**" \
+            ":!$BASE_PATH/.venv/**" \
+            ":!$BASE_PATH/docs/**" \
+            ":!$BASE_PATH/static/**" \
+            ":!$BASE_PATH/**/migrations/**" \
+            ":!$BASE_PATH/**/__pycache__/**")
+
           # 2. Dynamically assign rules based on our environment variables
           if echo "$CHANGED_FILES" | grep -q "$BASE_PATH/$CUSTOM_APP_1_FOLDER/"; then
             APP_RULES="$CUSTOM_APP_1_RULES"
@@ -92,7 +108,7 @@ jobs:
           else
             APP_RULES="$GENERIC_APP_RULES"
           fi
-          
+
           # 3. Dynamically append Pytest instructions if test files are modified
           if echo "$CHANGED_FILES" | grep -qE "test_.*\.py$|conftest\.py$"; then
             APP_RULES="$APP_RULES $TEST_RULES"
@@ -101,6 +117,24 @@ jobs:
           if echo "$CHANGED_FILES" | grep -qE "\.feature$|steps/.*\.py$"; then
             APP_RULES="$APP_RULES $BDD_RULES"
           fi
+
+          # 3c. Build full-file snapshots for every changed file and append them to the
+          #     context sent to the model. A raw diff only shows *changed hunks*, so the
+          #     model cannot see the surrounding unchanged code. Without the full file it
+          #     is forced to infer the current state from its training priors, which causes
+          #     false positives like "transaction.atomic() is missing" when it is already
+          #     present but not in the diff. Full snapshots eliminate that class of error.
+          echo "" > full_files.txt
+          echo "=== CURRENT STATE OF CHANGED FILES ==" >> full_files.txt
+          while IFS= read -r filepath; do
+            if [ -f "$filepath" ]; then
+              echo "" >> full_files.txt
+              echo "--- FILE: $filepath ---" >> full_files.txt
+              cat "$filepath" >> full_files.txt
+              echo "" >> full_files.txt
+            fi
+          done <<< "$CHANGED_FILES"
+          cat full_files.txt >> pr_diff.txt
           
           # 4. Build the JSON payload using the structured roles within the 'input' array
           # We use jq to safely escape the strings and load the massive diff into the user prompt
