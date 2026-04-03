@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Home{% endblock %}
 
@@ -19,7 +20,23 @@
 	      </div>
 
       	      <div class="panel-body">
-		      <form method="POST" class="ingredient-form">
+			  <!-- Barcode Scanner UI -->
+			  <div id="barcode-scanner-container" style="margin-bottom: 20px; text-align: center;">
+				  <div style="margin-bottom: 10px;">
+					  <button type="button" id="start-scan-btn" style="padding: 8px 16px;">📷 Scan Barcode</button>
+					  <button type="button" id="toggle-manual-btn" style="padding: 8px 16px; margin-left: 10px;">⌨️ Type Barcode</button>
+				  </div>
+
+				  <div id="manual-entry-container" style="display: none; margin-bottom: 15px;">
+					  <input type="text" id="manual-barcode-input" placeholder="Enter barcode manually" required pattern="(\d{8}|\d{12}|\d{13})" inputmode="numeric" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 60%; max-width: 250px;">
+					  <button type="button" id="manual-submit-btn" style="padding: 6px 12px; margin-left: 5px;">Search</button>
+				  </div>
+
+				  <p id="scanner-status" aria-live="polite" style="display: none; color: #555; font-style: italic; margin: 5px 0; font-size: 0.9em;"></p>
+				  <div id="reader" style="width: 100%; max-width: 400px; margin: 0 auto; display: none; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
+			  </div>
+
+		      <form method="POST" class="ingredient-form" id="add-ingredient-form">
 			      {% csrf_token %}
 			      <input type="text" id="ingredient-name" name="name" placeholder="Item Name" required>
 			      <select id="ingredient-food-group" name="food_group" required>
@@ -34,7 +51,7 @@
 				      <option value="OT">Other</option>
 			      </select>
 
-			      <input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="1" required>
+			      <input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="0.01" step="0.01" required>
 			      <select id="ingredient-unit" name="unit_measurement" required>
 				      <option value="">Select unit</option>
 				      <option value="A">count</option>
@@ -55,7 +72,7 @@
 			      </select>
 
 			      <label for="ingredient-obtained">Date Obtained</label>
-			      <input type="date" id="ingredient-obtained" name="date_obtained" required>
+			      <input type="date" id="ingredient-obtained" name="date_obtained" value="{% now 'Y-m-d' %}" required>
 
 			      <label for="ingredient-expiration">Expiration Date</label>
 			      <input type="date" id="ingredient-expiration" name="date_expired" onchange="validateExpirationDate(this)" required>
@@ -73,10 +90,17 @@
 
 		      <ul id="ingredient-list" class="ingredient-list">
 			      {% for item in items %}
-			      <li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.food_group }}" data-unit-measurement="{{ item.unit_measurement }}">
+			      <li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.get_food_group_display }}" data-unit-measurement="{{ item.unit_measurement }}" data-quantity="{{ item.quantity }}" data-expiration="{{ item.date_expired|date:'Y-m-d' }}" class="{% if item.minutes_remaining <= 4320 %}expiring{% endif %}">
 				      <div class="ingredient-info">
-					      <span class="ingredient-name">{{ item.name }}</span><br>
-					      Food Group: <span class="ingredient-group">{{ item.get_food_group_display }}</span><br>
+					      <span class="ingredient-name ingredient-label">
+							{% if item.minutes_remaining <= 0 %}
+								<i class="fa fa-calendar-times expired-icon" title="Expired"></i> 
+							{% elif item.minutes_remaining <= 4320 %}
+								<i class="fa fa-exclamation-triangle expires-soon-icon" title="Expiring Soon"></i>
+							{% endif %}
+							{{ item.name }}
+						  </span><br>
+					      Food Group:  <span class="ingredient-group">{{ item.get_food_group_display }}</span><br>
 					      Quantity: <span class="ingredient-amount">{{ item.quantity }}</span> <span class="ingredient-unit">{{ item.get_unit_measurement_display }}</span><br>
 					      Date Obtained: <span class="ingredient-obtained">{{ item.date_obtained }}</span><br>
 					      Expiration Date: <span class="ingredient-expiration">{{ item.date_expired }}</span>
@@ -123,8 +147,49 @@
 	      </div>
 
 	      <div class="panel-body">
-		      <ul class="simple-list">
-		      </ul>
+
+			<div class="expiring-section-label"><i class="fa fa-calendar-times expired-icon" title="Expired"></i> Expired</div>
+			<ul id="expired-list" class="expired-list">
+				{% for item in items %}
+					{% if item.minutes_remaining <= 0 %}
+					<li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.food_group }}" data-unit-measurement="{{ item.unit_measurement }}" data-quantity="{{ item.quantity }}" data-expiration="{{ item.date_expired|date:'Y-m-d' }}">
+						<div class="expired-info">
+							<span class="ingredient-name ingredient-label">{{ item.name }}</span>
+							<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
+						</div>
+						<div class="item-actions">
+							<button type="button" onclick="editIngredient(this)">Edit</button>
+							<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+								{% csrf_token %}
+								<button type="submit">Delete</button>
+							</form>
+				      	</div>
+					</li>
+					{% endif %}					
+				{% endfor %}
+			</ul>
+
+			<div class="expiring-section-label"><i class="fa fa-exclamation-triangle expires-soon-icon" title="Expiring Soon"></i> Expires Soon</div>
+			<ul id="expiring-soon-list" class="expiring-soon-list">
+				{% for item in items %}
+					{% if item.minutes_remaining <= 4320 and item.minutes_remaining > 0 %}
+					<li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.get_food_group_display }}" data-unit-measurement="{{ item.unit_measurement }}" data-quantity="{{ item.quantity }}" data-expiration="{{ item.date_expired|date:'Y-m-d' }}">
+						<div class="expiring-info">
+							<span class="ingredient-name ingredient-label">{{ item.name }}</span>
+							<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
+						</div>
+						<div class="item-actions">
+					      	<button type="button" onclick="editIngredient(this)">Edit</button>
+							<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+								{% csrf_token %}
+								<button type="submit">Delete</button>
+							</form>
+				      	</div>
+					</li>
+					{% endif %}					
+				{% endfor %}
+			</ul>
+
 	      </div>
       </div>
     </section>
@@ -157,8 +222,8 @@
 		debugger;
         const name = input.value;
 
-        if (!/^[A-Za-z]+$/.test(name)) {
-            input.setCustomValidity("Name field can only have letters.");
+        if (!/^[A-Za-z\s]+$/.test(name)) {
+            input.setCustomValidity("Name field can only have letters and spaces.");
             input.reportValidity();
         } else {
             input.setCustomValidity("");
@@ -179,39 +244,39 @@
 
 
 	function addIngredient(event) {
-	       event.preventDefault();
+    event.preventDefault();
 
-		   const expirationInput = document.getElementById('ingredient-expiration');
+		const expirationInput = document.getElementById('ingredient-expiration');
 
-		   if (!expirationInput.checkValidity()) {
-				expirationInput.reportValidity();
-				return;
-			}
+		if (!expirationInput.checkValidity()) {
+		  expirationInput.reportValidity();
+		  return;
+		}
 
-	       const name = document.getElementById('ingredient-name').value.trim();
-	       const foodGroup = document.getElementById('ingredient-food-group').value;
-	       const amount = document.getElementById('ingredient-amount').value;
-	       const unit = document.getElementById('ingredient-unit').value;
-	       const expiration = document.getElementById('ingredient-expiration').value;
-	       if (!name || !foodGroup || !amount || !unit || !expiration) return;
+	  const name = document.getElementById('ingredient-name').value.trim();
+	  const foodGroup = document.getElementById('ingredient-food-group').value;
+	  const amount = document.getElementById('ingredient-amount').value;
+	  const unit = document.getElementById('ingredient-unit').value;
+	  const expiration = document.getElementById('ingredient-expiration').value;
+	  if (!name || !foodGroup || !amount || !unit || !expiration) return;
 
-	       const list = document.getElementById('ingredient-list');
-	       const li = document.createElement('li');
+	  const list = document.getElementById('ingredient-list');
+	  const li = document.createElement('li');
 
-	       li.innerHTML = `
-	       	  <div class="ingredient-info">
-		    <span class="ingredient-name">${name}</span><br>
-		    Food Group: <span class="ingredient-group">${foodGroup}</span><br>
-		    Quantity: <span class="ingredient-amount">${amount}</span> <span class="ingredient-unit">${unit}</span><br>
-		    Expiration Date: <span class="ingredient-expiration">${expiration}</span>
-		  </div>
-	          <div class="item-actions">
-	            <button type="button" onclick="editIngredient(this)">Edit</button>
-	          </div>
-	       `;
+	  li.innerHTML = `
+	  <div class="ingredient-info">
+		<span class="ingredient-name">${name}</span><br>
+		Food Group: <span class="ingredient-group">${foodGroup}</span><br>
+		Quantity: <span class="ingredient-amount">${amount}</span> <span class="ingredient-unit">${unit}</span><br>
+	  Expiration Date: <span class="ingredient-expiration">${expiration}</span>
+	  </div>
+	  <div class="item-actions">
+	    <button type="button" onclick="editIngredient(this)">Edit</button>
+	  </div>
+	  `;
 
-	        list.appendChild(li);
-	        document.getElementById("ingredient-name").value = "";
+	  list.appendChild(li);
+	  document.getElementById("ingredient-name").value = "";
 		document.getElementById("ingredient-food-group").value = "";
 		document.getElementById("ingredient-amount").value = "";
 		document.getElementById("ingredient-unit").value = "";
@@ -235,11 +300,11 @@
 		const dateObtained = li.dataset.dateObtained;
 
 		// Current values
-		const name = li.querySelector(".ingredient-name").textContent;
-		const group = li.querySelector(".ingredient-group").textContent.trim();
-		const quantity = li.querySelector(".ingredient-amount").textContent.trim();
-		const unit = li.querySelector(".ingredient-unit").textContent.trim();
-		const expiration = li.querySelector(".ingredient-expiration").textContent.trim();
+		const name = li.querySelector(".ingredient-name").textContent.trim();
+		const group = li.dataset.foodGroup;
+		const quantity = li.dataset.quantity;
+		const unit = li.dataset.unitMeasurement;
+		const expiration = li.dataset.expiration;
 
 		const formContent = `
 		<form method="POST" action="{% url 'edit_item' %}">
@@ -249,8 +314,8 @@
 			<input type="hidden" name="action" value="edit">
 
 			<div class="form-group">
-			<label for="edit-name">Item Name</label>
-			<input type="text" name="name" value="${name}" onchange="validateNameCharacters(this)" required>
+				<label for="edit-name">Item Name</label>
+				<input type="text" name="name" value="${name}" onchange="validateNameCharacters(this)" required>
 			</div>
 
 			<div class="form-group">
@@ -325,5 +390,188 @@
 
     openModal("Confirm Deletion", modalBody);
 	}
+</script>
+
+<script src="{% static 'js/html5-qrcode.min.js' %}"></script>
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		const startBtn = document.getElementById('start-scan-btn');
+		const toggleManualBtn = document.getElementById('toggle-manual-btn');
+		const manualContainer = document.getElementById('manual-entry-container');
+		const manualSubmitBtn = document.getElementById('manual-submit-btn');
+		const manualInput = document.getElementById('manual-barcode-input');
+
+		const readerDiv = document.getElementById('reader');
+		const statusText = document.getElementById('scanner-status');
+		let html5QrcodeScanner = null;
+
+		function playBeep() {
+			try {
+				const AudioContext = window.AudioContext || window.webkitAudioContext;
+				if (!AudioContext) return;
+				const ctx = new AudioContext();
+				const osc = ctx.createOscillator();
+				const gainNode = ctx.createGain();
+				osc.connect(gainNode);
+				gainNode.connect(ctx.destination);
+				osc.type = "sine";
+				osc.frequency.setValueAtTime(800, ctx.currentTime);
+				gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+				osc.start();
+				osc.stop(ctx.currentTime + 0.15); // beep for 150ms
+			} catch(e) { console.warn("AudioContext error", e); }
+		}
+
+		toggleManualBtn.addEventListener('click', function(event) {
+			event.preventDefault();
+			
+			// If scanner is running, tear it down cleanly
+			if (html5QrcodeScanner) {
+				html5QrcodeScanner.clear().then(() => {
+					readerDiv.style.display = 'none';
+					html5QrcodeScanner = null;
+					statusText.style.display = 'none';
+				}).catch(console.error);
+			}
+			
+			if (manualContainer.style.display === 'none') {
+				manualContainer.style.display = 'block';
+				toggleManualBtn.textContent = '✖️ Cancel Keyboard';
+				startBtn.style.display = 'none'; 
+				manualInput.focus();
+			} else {
+				manualContainer.style.display = 'none';
+				toggleManualBtn.textContent = '⌨️ Type Barcode';
+				startBtn.style.display = 'inline-block';
+			}
+		});
+
+		manualSubmitBtn.addEventListener('click', function(event) {
+			event.preventDefault();
+			if (!manualInput.reportValidity()) return; // Trigger native HTML5 warnings
+			
+			const barcode = manualInput.value.trim();
+			if (barcode) {
+				searchProductByBarcode(barcode);
+			}
+		});
+
+		startBtn.addEventListener('click', function(event) {
+			event.preventDefault(); // ensure mobile devices don't interpret as submit
+			if (html5QrcodeScanner) return;
+			
+			// Close manual entry if open
+			manualContainer.style.display = 'none';
+			toggleManualBtn.textContent = '⌨️ Type Barcode';
+			toggleManualBtn.style.display = 'inline-block';
+
+			readerDiv.style.display = 'block';
+			readerDiv.style.pointerEvents = 'auto'; // reset in case we locked it
+			statusText.style.display = 'block';
+			statusText.textContent = "Initializing camera...";
+			statusText.style.color = "#555";
+			startBtn.style.display = 'none';
+
+			// Initialize the scanner UI
+			html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 150} }, false);
+			
+			html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+		});
+
+		function searchProductByBarcode(decodedText) {
+			// Reset state from any previous lookup before starting a new one.
+			// delete dataset.status is symmetric with how we set it (dataset.status = ...)
+			// and avoids the undefined vs empty-string ambiguity of removeAttribute.
+			delete statusText.dataset.status;
+			statusText.textContent = `Searching for product... (Barcode: ${decodedText})`;
+			statusText.style.color = "blue";
+			statusText.style.display = 'block';
+			
+			// Fetch product data from API
+			fetch(`/api/product/?barcode=${decodedText}`)
+				.then(response => {
+					if (!response.ok) {
+						return response.json().then(err => { throw new Error(err.error || `HTTP ${response.status}`); });
+					}
+					return response.json();
+				})
+				.then(data => {
+					statusText.textContent = "Product loaded successfully. Feel free to edit below.";
+					statusText.style.color = "green";
+					statusText.dataset.status = "success";  // Stable hook for automated tests
+					if (!html5QrcodeScanner && manualContainer.style.display === 'none') startBtn.style.display = 'inline-block';
+					
+					// Populate the Add Item form cleanly
+					const safeName = (data.name || "").replace(/[\r\n]/g, ""); // Strip hidden submit characters from barcodes
+					document.getElementById('ingredient-name').value = safeName || "";
+					document.getElementById('ingredient-amount').value = data.quantity || "";
+					document.getElementById('ingredient-unit').value = data.unit_measurement || "";
+					
+					// Convenience: Auto-fill Date Obtained to "today" if it's empty
+					const dateObtainedInput = document.getElementById('ingredient-obtained');
+					if (dateObtainedInput && !dateObtainedInput.value) {
+						dateObtainedInput.value = new Date().toISOString().split('T')[0];
+					}
+
+					setTimeout(() => { statusText.style.display = 'none'; }, 4000);
+				})
+				.catch(err => {
+					statusText.textContent = `Error: ${err.message}`;
+					statusText.style.color = "red";
+					statusText.dataset.status = "error";  // Stable hook for automated tests
+					if (!html5QrcodeScanner && manualContainer.style.display === 'none') startBtn.style.display = 'inline-block';
+
+					// Clear populated fields to emphasize the product wasn't found
+					document.getElementById('ingredient-name').value = "";
+					document.getElementById('ingredient-amount').value = "";
+					document.getElementById('ingredient-unit').value = "";
+					
+					// Flash red outline to grab attention
+					const formElement = document.getElementById('add-ingredient-form');
+					formElement.style.transition = "border 0.3s";
+					formElement.style.border = "2px solid red";
+					formElement.style.padding = "5px";
+					formElement.style.borderRadius = "5px";
+					
+					setTimeout(() => { 
+					    formElement.style.border = "none"; 
+					    formElement.style.padding = "0";
+					}, 2000);
+				});
+		}
+
+		function onScanSuccess(decodedText, decodedResult) {
+			playBeep(); // Audio feedback immediately confirms read!
+			
+			// Lock the UI container immediately to prevent ghost canvas layers from intercepting clicks below it!
+			readerDiv.style.pointerEvents = 'none';
+
+			// Stop scanner asynchronously
+			if (html5QrcodeScanner) {
+				if (typeof html5QrcodeScanner.pause === "function") {
+					html5QrcodeScanner.pause(true);
+				}
+				setTimeout(() => {
+					html5QrcodeScanner.clear().then(() => {
+						readerDiv.style.display = 'none';
+						html5QrcodeScanner = null;
+						startBtn.style.display = 'inline-block';
+					}).catch(error => console.error("Failed to clear scanner.", error));
+				}, 500);
+			}
+
+			// Fire externalized fetch function
+			searchProductByBarcode(decodedText);
+		}
+
+		function onScanFailure(error) {
+			// Catch generic browser NotAllowedError for graceful UI fallback
+			if (typeof error === 'string' && (error.includes('NotAllowedError') || error.includes('Permission'))) {
+			    statusText.textContent = "Camera permission denied! Please use 'Type Barcode' instead.";
+			    statusText.style.color = "red";
+			    statusText.style.display = 'block';
+			}
+		}
+	});
 </script>
 {% endblock %}
