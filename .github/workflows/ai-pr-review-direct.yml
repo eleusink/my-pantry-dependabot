@@ -1,4 +1,4 @@
-name: AI Pull Request Review Direct (overengineered)
+name: AI Pull Request Review (Pragmatically Over-Engineered)
 
 on:
   pull_request:
@@ -39,6 +39,9 @@ jobs:
       
       # 4. Universal Modifiers
       TEST_RULES: "For Pytest code: Evaluate test quality. Check for proper fixture usage (avoiding unnecessary DB hits), proper test isolation, descriptive test names, and ensure assertions check actual data state."
+      
+      # 5. BDD Rules 
+      BDD_RULES: "For Behave BDD code: Evaluate Gherkin syntax (.feature) for business-readable clarity. Check Python step definitions (steps/*.py) for proper context usage, avoiding logic duplication, and ensuring realistic user-flow simulations."
     # ==========================================
 
     steps:
@@ -46,6 +49,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          python-version: '3.12'
+
+      # python-version must be set on setup-python, not on checkout (checkout ignores it silently).
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Determine AI Model Based on Target Branch
         id: select-model
@@ -57,8 +67,8 @@ jobs:
             echo "SELECTED_MODEL=o3" >> $GITHUB_ENV
             echo "Production merge detected. Using heavy reasoning model: o3."
           else
-            echo "SELECTED_MODEL=gpt-5.1-codex-mini" >> $GITHUB_ENV
-            echo "Feature branch merge detected. Using code-optimized model: gpt-5.1-codex-mini."
+            echo "SELECTED_MODEL=o3" >> $GITHUB_ENV
+            echo "Feature branch merge detected. Using heavy reasoning model: o3."
           fi
 
       - name: Custom Django & Pytest AI Review
@@ -68,6 +78,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           # 1. Grab the PR diff locally, explicitly excluding noisy/auto-generated files
+          # 1. Grab the PR diff locally, explicitly excluding noisy/auto-generated files.
           TARGET_BRANCH="${{ github.base_ref }}"
           git diff origin/$TARGET_BRANCH...HEAD -- \
             "$BASE_PATH/**" \
@@ -76,10 +87,19 @@ jobs:
             ":!$BASE_PATH/static/**" \
             ":!$BASE_PATH/**/migrations/**" \
             ":!$BASE_PATH/**/__pycache__/**" > pr_diff.txt
-            
-          # Grab the list of changed files for our routing logic
-          CHANGED_FILES=$(gh pr view $PR_NUMBER --json files -q '.files[].path')
-          
+
+          # Derive the changed-file list from the SAME git range as the diff above.
+          # Previously this used 'gh pr view --json files', which can diverge from the
+          # git merge-base diff when the target branch has been updated since the PR
+          # was opened, causing the routing logic and the actual diff to disagree.
+          CHANGED_FILES=$(git diff --name-only origin/$TARGET_BRANCH...HEAD -- \
+            "$BASE_PATH/**" \
+            ":!$BASE_PATH/.venv/**" \
+            ":!$BASE_PATH/docs/**" \
+            ":!$BASE_PATH/static/**" \
+            ":!$BASE_PATH/**/migrations/**" \
+            ":!$BASE_PATH/**/__pycache__/**")
+
           # 2. Dynamically assign rules based on our environment variables
           if echo "$CHANGED_FILES" | grep -q "$BASE_PATH/$CUSTOM_APP_1_FOLDER/"; then
             APP_RULES="$CUSTOM_APP_1_RULES"
@@ -88,23 +108,46 @@ jobs:
           else
             APP_RULES="$GENERIC_APP_RULES"
           fi
-          
+
           # 3. Dynamically append Pytest instructions if test files are modified
           if echo "$CHANGED_FILES" | grep -qE "test_.*\.py$|conftest\.py$"; then
             APP_RULES="$APP_RULES $TEST_RULES"
           fi
+          # 3b. Dynamically append Behave BDD instructions if feature/step files are modified
+          if echo "$CHANGED_FILES" | grep -qE "\.feature$|steps/.*\.py$"; then
+            APP_RULES="$APP_RULES $BDD_RULES"
+          fi
+
+          # 3c. Build full-file snapshots for every changed file and append them to the
+          #     context sent to the model. A raw diff only shows *changed hunks*, so the
+          #     model cannot see the surrounding unchanged code. Without the full file it
+          #     is forced to infer the current state from its training priors, which causes
+          #     false positives like "transaction.atomic() is missing" when it is already
+          #     present but not in the diff. Full snapshots eliminate that class of error.
+          echo "" > full_files.txt
+          echo "=== CURRENT STATE OF CHANGED FILES ==" >> full_files.txt
+          while IFS= read -r filepath; do
+            if [ -f "$filepath" ]; then
+              echo "" >> full_files.txt
+              echo "--- FILE: $filepath ---" >> full_files.txt
+              cat "$filepath" >> full_files.txt
+              echo "" >> full_files.txt
+            fi
+          done <<< "$CHANGED_FILES"
+          cat full_files.txt >> pr_diff.txt
           
-          # 4. Build the JSON payload using --rawfile to safely load the massive diff
+          # 4. Build the JSON payload using the structured roles within the 'input' array
+          # We use jq to safely escape the strings and load the massive diff into the user prompt
           jq -n \
             --arg model "$SELECTED_MODEL" \
             --arg rules "$APP_RULES" \
             --rawfile diff pr_diff.txt \
             '{
               "model": $model,
-              "messages": [
+              "input": [
                 {
                   "role": "system",
-                  "content": ("You are a strict Senior Django Engineer. " + $rules + " Keep your feedback concise, actionable, and formatted in Markdown. Do not nitpick PEP8 formatting as Flake8 handles that.")
+                  "content": ("You are a pragmatic Django Instructor reviewing a student 2-week homework assignment. " + $rules + " Keep your feedback concise and actionable. CRITICAL: This is a simple homework assignment, not a production enterprise system. Do NOT suggest enterprise-grade features (e.g., multi-database environments, advanced concurrency handling, production isolation levels). Only suggest fixes for actual bugs or simple improvements proportional to a short homework assignment scope. Do not nitpick PEP8 formatting as Flake8 handles that.")
                 },
                 {
                   "role": "user",
@@ -113,14 +156,15 @@ jobs:
               ]
             }' > payload.json
             
-          # 5. Call OpenAI API directly, uploading the JSON file via @payload.json
-          RESPONSE=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
+          # 5. Call OpenAI API directly via the responses endpoint
+          RESPONSE=$(curl -s -X POST https://api.openai.com/v1/responses \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
             -H "Content-Type: application/json" \
             -d @payload.json)
             
-          # 6. Extract and post the review
-          REVIEW_COMMENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
+          # 6. Extract and post the review using the Responses JSON schema logic
+          # We use select() to dynamically find the message block, skipping the reasoning block
+          REVIEW_COMMENT=$(echo "$RESPONSE" | jq -r '.output[] | select(.type == "message") | .content[] | select(.type == "output_text") | .text // empty')
           
           if [ -n "$REVIEW_COMMENT" ]; then
             gh pr comment $PR_NUMBER --body "$REVIEW_COMMENT"

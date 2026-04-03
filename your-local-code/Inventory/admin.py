@@ -6,7 +6,7 @@ from .models import Ingredient
 class IngredientInline(admin.TabularInline):
     model = Ingredient
     extra = 0
-    feilds = (
+    fields = (
             "name", 
             "quantity",
             "unit_measurement",

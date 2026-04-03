@@ -26,7 +26,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12' # Update to match your project's version if needed.
+          python-version: '3.12' 
 
       - name: Install Flake8
         run: pip install -r your-local-code/requirements-flake8.txt

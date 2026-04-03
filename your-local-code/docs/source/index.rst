@@ -15,3 +15,7 @@ documentation for details.
    :maxdepth: 2
    :caption: Contents:
 
+   api/MyPantry
+   api/Inventory
+   api/steps
+   
