@@ -1,11 +1,20 @@
-# Only Render required modules
-asgiref==3.7.2
-brotli==1.2.0
+# Framework & Dependencies
 Django==4.2.11
-gunicorn==25.1.0
-packaging==26.0
-python-dotenv==1.2.2
-sqlparse==0.4.4
-tzdata==2025.3
-whitenoise==6.12.0
-requests==2.32.5
+asgiref==3.7.2       # ASGI specs, standard for Django async operations
+sqlparse==0.4.4      # SQL parser, required by Django's ORM
+tzdata==2025.3       # Timezone data, required by Django
+
+# Web Server & Static File Management
+gunicorn==25.1.0     # Production WSGI HTTP Server
+whitenoise==6.12.0   # Serves static files directly from the web server
+brotli==1.2.0        # Compression library to make WhiteNoise static files load faster
+
+# Configuration & Environment
+python-dotenv==1.2.2 # Loads environment variables from a .env file
+
+# External API & HTTP Clients
+requests==2.32.5     # Library for making HTTP(API) requests
+djangorestframework==3.17.1 # API Framework
+
+# Utilities
+packaging==26.0      # Core utilities for Python packages
