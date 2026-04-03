@@ -169,14 +169,10 @@ h2{ margin: 0; }
   font-weight: bold;
 }
 
-/* .expired-icon {
-  color: red;
+/* ================= NOTIFICATIONS DISPLAY ================= */
+.expiring-section-label {
+  font-weight: bold;
 }
-
-.expires-soon-icon {
-  color: #FF7518;
-} */
-
 
 /* ================= RESPONSIVE ================= */
 

@@ -139,8 +139,35 @@
 	      </div>
 
 	      <div class="panel-body">
-		      <ul class="simple-list">
-		      </ul>
+			
+			<div class="expiring-section-label"><i class="fa fa-calendar-times expired-icon" title="Expired"></i> Expired</div>
+			<ul id="expired-list" class="expired-list">
+				{% for item in items %}
+					{% if item.minutes_remaining <= 0 %}
+					<li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.food_group }}" data-unit-measurement="{{ item.unit_measurement }}">
+						<div class="expired-info">
+							<span class="ingredient-name ingredient-label">{{ item.name }}</span>
+							<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
+						</div>
+					</li>
+					{% endif %}					
+				{% endfor %}
+			</ul>
+
+			<div class="expiring-section-label"><i class="fa fa-exclamation-triangle expires-soon-icon" title="Expiring Soon"></i> Expires Soon</div>
+			<ul id="expiring-soon-list" class="expiring-soon-list">
+				{% for item in items %}
+					{% if item.minutes_remaining <= 4320 and item.minutes_remaining > 0 %}
+					<li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.food_group }}" data-unit-measurement="{{ item.unit_measurement }}">
+						<div class="expiring-info">
+							<span class="ingredient-name ingredient-label">{{ item.name }}</span>
+							<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
+						</div>
+					</li>
+					{% endif %}					
+				{% endfor %}
+			</ul>
+
 	      </div>
       </div>
     </section>
