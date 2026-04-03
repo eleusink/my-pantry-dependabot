@@ -4,7 +4,3 @@
 -r requirements-behave.txt
 -r requirements-flake8.txt
 -r requirements-pytest.txt
-
-# Web Testing/API Utilities (Recommended)
-beautifulsoup4==4.14.3
-
