@@ -83,7 +83,7 @@
 
 		      <ul id="ingredient-list" class="ingredient-list">
 			      {% for item in items %}
-			      <li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.food_group }}" data-unit-measurement="{{ item.unit_measurement }}" class="{% if item.minutes_remaining <= 4320 %}expiring{% endif %}">
+			      <li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.get_food_group_display }}" data-unit-measurement="{{ item.unit_measurement }}" data-quantity="{{ item.quantity }}" data-expiration="{{ item.date_expired|date:'Y-m-d' }}" class="{% if item.minutes_remaining <= 4320 %}expiring{% endif %}">
 				      <div class="ingredient-info">
 					      <span class="ingredient-name ingredient-label">
 							{% if item.minutes_remaining <= 0 %}
@@ -139,16 +139,23 @@
 	      </div>
 
 	      <div class="panel-body">
-			
+
 			<div class="expiring-section-label"><i class="fa fa-calendar-times expired-icon" title="Expired"></i> Expired</div>
 			<ul id="expired-list" class="expired-list">
 				{% for item in items %}
 					{% if item.minutes_remaining <= 0 %}
-					<li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.food_group }}" data-unit-measurement="{{ item.unit_measurement }}">
+					<li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.food_group }}" data-unit-measurement="{{ item.unit_measurement }}" data-quantity="{{ item.quantity }}" data-expiration="{{ item.date_expired|date:'Y-m-d' }}">
 						<div class="expired-info">
 							<span class="ingredient-name ingredient-label">{{ item.name }}</span>
 							<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
 						</div>
+						<div class="item-actions">
+							<button type="button" onclick="editIngredient(this)">Edit</button>
+							<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+								{% csrf_token %}
+								<button type="submit">Delete</button>
+							</form>
+				      	</div>
 					</li>
 					{% endif %}					
 				{% endfor %}
@@ -158,11 +165,18 @@
 			<ul id="expiring-soon-list" class="expiring-soon-list">
 				{% for item in items %}
 					{% if item.minutes_remaining <= 4320 and item.minutes_remaining > 0 %}
-					<li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.food_group }}" data-unit-measurement="{{ item.unit_measurement }}">
+					<li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.get_food_group_display }}" data-unit-measurement="{{ item.unit_measurement }}" data-quantity="{{ item.quantity }}" data-expiration="{{ item.date_expired|date:'Y-m-d' }}">
 						<div class="expiring-info">
 							<span class="ingredient-name ingredient-label">{{ item.name }}</span>
 							<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
 						</div>
+						<div class="item-actions">
+					      	<button type="button" onclick="editIngredient(this)">Edit</button>
+							<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+								{% csrf_token %}
+								<button type="submit">Delete</button>
+							</form>
+				      	</div>
 					</li>
 					{% endif %}					
 				{% endfor %}
@@ -200,8 +214,8 @@
 		debugger;
         const name = input.value;
 
-        if (!/^[A-Za-z]+$/.test(name)) {
-            input.setCustomValidity("Name field can only have letters.");
+        if (!/^[A-Za-z\s]+$/.test(name)) {
+            input.setCustomValidity("Name field can only have letters and spaces.");
             input.reportValidity();
         } else {
             input.setCustomValidity("");
@@ -222,32 +236,32 @@
 
 
 	function addIngredient(event) {
-	       event.preventDefault();
+		event.preventDefault();
 
-	       const name = document.getElementById('ingredient-name').value.trim();
-	       const foodGroup = document.getElementById('ingredient-food-group').value;
-	       const amount = document.getElementById('ingredient-amount').value;
-	       const unit = document.getElementById('ingredient-unit').value;
-	       const expiration = document.getElementById('ingredient-expiration').value;
-	       if (!name || !foodGroup || !amount || !unit || !expiration) return;
+		const name = document.getElementById('ingredient-name').value.trim();
+		const foodGroup = document.getElementById('ingredient-food-group').value;
+		const amount = document.getElementById('ingredient-amount').value;
+		const unit = document.getElementById('ingredient-unit').value;
+		const expiration = document.getElementById('ingredient-expiration').value;
+		if (!name || !foodGroup || !amount || !unit || !expiration) return;
 
-	       const list = document.getElementById('ingredient-list');
-	       const li = document.createElement('li');
+		const list = document.getElementById('ingredient-list');
+		const li = document.createElement('li');
 
-	       li.innerHTML = `
-	       	  <div class="ingredient-info">
-		    <span class="ingredient-name">${name}</span><br>
-		    Food Group: <span class="ingredient-group">${foodGroup}</span><br>
-		    Quantity: <span class="ingredient-amount">${amount}</span> <span class="ingredient-unit">${unit}</span><br>
-		    Expiration Date: <span class="ingredient-expiration">${expiration}</span>
-		  </div>
-	          <div class="item-actions">
-	            <button type="button" onclick="editIngredient(this)">Edit</button>
-	          </div>
-	       `;
+		li.innerHTML = `
+		<div class="ingredient-info">
+			<span class="ingredient-name">${name}</span><br>
+			Food Group: <span class="ingredient-group">${foodGroup}</span><br>
+			Quantity: <span class="ingredient-amount">${amount}</span> <span class="ingredient-unit">${unit}</span><br>
+			Expiration Date: <span class="ingredient-expiration">${expiration}</span>
+		</div>
+		<div class="item-actions">
+			<button type="button" onclick="editIngredient(this)">Edit</button>
+		</div>
+		`;
 
-	        list.appendChild(li);
-	        document.getElementById("ingredient-name").value = "";
+		list.appendChild(li);
+		document.getElementById("ingredient-name").value = "";
 		document.getElementById("ingredient-food-group").value = "";
 		document.getElementById("ingredient-amount").value = "";
 		document.getElementById("ingredient-unit").value = "";
@@ -270,11 +284,11 @@
 		const dateObtained = li.dataset.dateObtained;
 
 		// Current values
-		const name = li.querySelector(".ingredient-name").textContent;
-		const group = li.querySelector(".ingredient-group").textContent.trim();
-		const quantity = li.querySelector(".ingredient-amount").textContent.trim();
-		const unit = li.querySelector(".ingredient-unit").textContent.trim();
-		const expiration = li.querySelector(".ingredient-expiration").textContent.trim();
+		const name = li.querySelector(".ingredient-name").textContent.trim();
+		const group = li.dataset.foodGroup;
+		const quantity = li.dataset.quantity;
+		const unit = li.dataset.unitMeasurement;
+		const expiration = li.dataset.expiration;
 
 		const formContent = `
 		<form method="POST" action="{% url 'edit_item' %}">
@@ -284,8 +298,8 @@
 			<input type="hidden" name="action" value="edit">
 
 			<div class="form-group">
-			<label for="edit-name">Item Name</label>
-			<input type="text" name="name" value="${name}" onchange="validateNameCharacters(this)" required>
+				<label for="edit-name">Item Name</label>
+				<input type="text" name="name" value="${name}" onchange="validateNameCharacters(this)" required>
 			</div>
 
 			<div class="form-group">
