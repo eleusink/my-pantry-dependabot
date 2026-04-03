@@ -1,59 +1,44 @@
 from django import forms
 from .models import Ingredient
-import re
-from django.core.exceptions import ValidationError
-from django.utils.timezone import localdate
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserChangeForm
 
 
 class IngredientForm(forms.ModelForm):
+    """ModelForm for creating and editing Ingredient records.
+
+    Delegates all business-rule validation to Ingredient.clean() via the
+    ModelForm's full_clean cycle, keeping the form layer thin.
+    """
+
     class Meta:
+        """Configures the form to target all user-editable Ingredient fields."""
+
         model = Ingredient
         fields = ['name', 'quantity', 'date_obtained', 'date_expired', 'food_group', 'unit_measurement']
 
-    def clean_name(self):
-        """Catches invalid name characters, even from POST
-
-        Anything that isn't a letter or space (number, symbol) should be caught and corrected.
-
-        Args:
-            param1: self, the form / ingredient currently being worked on
+    def clean(self) -> dict:
+        """Runs the parent clean cycle and returns the cleaned data.
 
         Returns:
-            name (ingredient string field), if the name is clean
-
-        Raises:
-            ValidationError: If name has non-letters or spaces
+            The dictionary of validated field values produced by the parent
+            ModelForm clean chain.
         """
-        name = self.cleaned_data.get('name')
-
-        if not re.match(r'^[A-Za-z\s]+$', name):
-            raise ValidationError('Name must contain only letters and spaces')
-
-        return name
-
-    def clean_date_expired(self):
-        date_expired = self.cleaned_data.get('date_expired')
-
-        if date_expired and date_expired < localdate():
-            raise ValidationError('Expiration date cannot be in the past.')
-
-        return date_expired
-
-    def clean(self):
         cleaned_data = super().clean()
-        date_obtained = cleaned_data.get('date_obtained')
-        date_expired = cleaned_data.get('date_expired')
-
-        if date_obtained and date_expired and date_obtained > date_expired:
-            raise ValidationError('Date obtained cannot be after expiration date.')
-
         return cleaned_data
 
+
 class CustomUserChangeForm(UserChangeForm):
+    """Restricted user-profile form that omits the password change field.
+
+    Exposes only safe, non-sensitive profile fields so users can update
+    their display name and email without touching authentication credentials.
+    """
+
     password = None
 
     class Meta:
+        """Targets the built-in User model with a subset of profile fields."""
+
         model = User
         fields = ['username', 'first_name', 'last_name', 'email']

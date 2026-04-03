@@ -20,4 +20,7 @@ urlpatterns = [
 
     # edit inside home page
     path('ingredient/edit/', views.edit_ingredient, name='edit_item'),
+
+    # API endpoints
+    path('api/product/', views.product_info_api, name='product_info_api'),
 ]
