@@ -83,10 +83,17 @@
 
 		      <ul id="ingredient-list" class="ingredient-list">
 			      {% for item in items %}
-			      <li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.food_group }}" data-unit-measurement="{{ item.unit_measurement }}">
+			      <li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.food_group }}" data-unit-measurement="{{ item.unit_measurement }}" class="{% if item.minutes_remaining <= 4320 %}expiring{% endif %}">
 				      <div class="ingredient-info">
-					      <span class="ingredient-name">{{ item.name }}</span><br>
-					      Food Group: <span class="ingredient-group">{{ item.get_food_group_display }}</span><br>
+					      <span class="ingredient-name ingredient-label">
+							{% if item.minutes_remaining <= 0 %}
+								<i class="fa fa-calendar-times expired-icon" title="Expired"></i> 
+							{% elif item.minutes_remaining <= 4320 %}
+								<i class="fa fa-exclamation-triangle expires-soon-icon" title="Expiring Soon"></i>
+							{% endif %}
+							{{ item.name }}
+						  </span><br>
+					      Food Group:  <span class="ingredient-group">{{ item.get_food_group_display }}</span><br>
 					      Quantity: <span class="ingredient-amount">{{ item.quantity }}</span> <span class="ingredient-unit">{{ item.get_unit_measurement_display }}</span><br>
 					      Date Obtained: <span class="ingredient-obtained">{{ item.date_obtained }}</span><br>
 					      Expiration Date: <span class="ingredient-expiration">{{ item.date_expired }}</span>

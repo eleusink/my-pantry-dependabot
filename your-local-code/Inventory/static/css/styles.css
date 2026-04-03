@@ -157,6 +157,27 @@ h2{ margin: 0; }
   color: var(--muted);
 }
 
+/* ================= INGREDIENTS DISPLAY ================= */
+/* .ingredient-info {
+} */
+
+.expiring {
+  background-color: rgba(255, 0, 0, 0.1);
+}
+
+.ingredient-label {
+  font-weight: bold;
+}
+
+/* .expired-icon {
+  color: red;
+}
+
+.expires-soon-icon {
+  color: #FF7518;
+} */
+
+
 /* ================= RESPONSIVE ================= */
 
 @media (max-width: 900px){

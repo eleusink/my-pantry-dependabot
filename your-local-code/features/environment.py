@@ -93,7 +93,6 @@ def before_scenario(context, scenario):
     context.client = Client()
     context.client.force_login(context.user)
 
-
 def after_scenario(context, scenario):
     """Tears down per-scenario resources after each scenario completes.
 
