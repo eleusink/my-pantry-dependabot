@@ -291,5 +291,210 @@
 
 		openModal('Edit Ingredient', formContent);
 	}
+
+	function confirmDelete(itemName, formId) {
+    const modalBody = `
+        <div class="confirm-delete-content">
+            <p>Are you sure you want to delete item: <strong>${itemName}</strong>?</p>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+                <button type="button" class="btn-confirm" onclick="document.getElementById('${formId}').submit()">
+                    Yes
+                </button>
+                <button type="button" class="btn-cancel" onclick="closeModal()">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    `;
+
+    openModal("Confirm Deletion", modalBody);
+	}
+</script>
+
+<script src="{% static 'js/html5-qrcode.min.js' %}"></script>
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		const startBtn = document.getElementById('start-scan-btn');
+		const toggleManualBtn = document.getElementById('toggle-manual-btn');
+		const manualContainer = document.getElementById('manual-entry-container');
+		const manualSubmitBtn = document.getElementById('manual-submit-btn');
+		const manualInput = document.getElementById('manual-barcode-input');
+
+		const readerDiv = document.getElementById('reader');
+		const statusText = document.getElementById('scanner-status');
+		let html5QrcodeScanner = null;
+
+		function playBeep() {
+			try {
+				const AudioContext = window.AudioContext || window.webkitAudioContext;
+				if (!AudioContext) return;
+				const ctx = new AudioContext();
+				const osc = ctx.createOscillator();
+				const gainNode = ctx.createGain();
+				osc.connect(gainNode);
+				gainNode.connect(ctx.destination);
+				osc.type = "sine";
+				osc.frequency.setValueAtTime(800, ctx.currentTime);
+				gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+				osc.start();
+				osc.stop(ctx.currentTime + 0.15); // beep for 150ms
+			} catch(e) { console.warn("AudioContext error", e); }
+		}
+
+		toggleManualBtn.addEventListener('click', function(event) {
+			event.preventDefault();
+			
+			// If scanner is running, tear it down cleanly
+			if (html5QrcodeScanner) {
+				html5QrcodeScanner.clear().then(() => {
+					readerDiv.style.display = 'none';
+					html5QrcodeScanner = null;
+					statusText.style.display = 'none';
+				}).catch(console.error);
+			}
+			
+			if (manualContainer.style.display === 'none') {
+				manualContainer.style.display = 'block';
+				toggleManualBtn.textContent = '✖️ Cancel Keyboard';
+				startBtn.style.display = 'none'; 
+				manualInput.focus();
+			} else {
+				manualContainer.style.display = 'none';
+				toggleManualBtn.textContent = '⌨️ Type Barcode';
+				startBtn.style.display = 'inline-block';
+			}
+		});
+
+		manualSubmitBtn.addEventListener('click', function(event) {
+			event.preventDefault();
+			if (!manualInput.reportValidity()) return; // Trigger native HTML5 warnings
+			
+			const barcode = manualInput.value.trim();
+			if (barcode) {
+				searchProductByBarcode(barcode);
+			}
+		});
+
+		startBtn.addEventListener('click', function(event) {
+			event.preventDefault(); // ensure mobile devices don't interpret as submit
+			if (html5QrcodeScanner) return;
+			
+			// Close manual entry if open
+			manualContainer.style.display = 'none';
+			toggleManualBtn.textContent = '⌨️ Type Barcode';
+			toggleManualBtn.style.display = 'inline-block';
+
+			readerDiv.style.display = 'block';
+			readerDiv.style.pointerEvents = 'auto'; // reset in case we locked it
+			statusText.style.display = 'block';
+			statusText.textContent = "Initializing camera...";
+			statusText.style.color = "#555";
+			startBtn.style.display = 'none';
+
+			// Initialize the scanner UI
+			html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 150} }, false);
+			
+			html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+		});
+
+		function searchProductByBarcode(decodedText) {
+			// Defense-in-depth: always strip surrounding whitespace/CR/LF regardless
+			// of whether the caller is the scanner (which may append \r) or manual entry.
+			decodedText = decodedText.trim();
+			// Reset state from any previous lookup before starting a new one.
+			// delete dataset.status is symmetric with how we set it (dataset.status = ...)
+			// and avoids the undefined vs empty-string ambiguity of removeAttribute.
+			delete statusText.dataset.status;
+			statusText.textContent = `Searching for product... (Barcode: ${decodedText})`;
+			statusText.style.color = "blue";
+			statusText.style.display = 'block';
+			
+			// Fetch product data from API
+			fetch(`/api/product/?barcode=${decodedText}`)
+				.then(response => {
+					if (!response.ok) {
+						return response.json().then(err => { throw new Error(err.error || `HTTP ${response.status}`); });
+					}
+					return response.json();
+				})
+				.then(data => {
+					statusText.textContent = "Product loaded successfully. Feel free to edit below.";
+					statusText.style.color = "green";
+					statusText.dataset.status = "success";  // Stable hook for automated tests
+					if (!html5QrcodeScanner && manualContainer.style.display === 'none') startBtn.style.display = 'inline-block';
+					
+					// Populate the Add Item form cleanly
+					const safeName = (data.name || "").replace(/[\r\n]/g, ""); // Strip hidden submit characters from barcodes
+					document.getElementById('ingredient-name').value = safeName || "";
+					document.getElementById('ingredient-amount').value = data.quantity || "";
+					document.getElementById('ingredient-unit').value = data.unit_measurement || "";
+					
+					// Convenience: Auto-fill Date Obtained to "today" if it's empty
+					const dateObtainedInput = document.getElementById('ingredient-obtained');
+					if (dateObtainedInput && !dateObtainedInput.value) {
+						dateObtainedInput.value = new Date().toISOString().split('T')[0];
+					}
+
+					setTimeout(() => { statusText.style.display = 'none'; }, 4000);
+				})
+				.catch(err => {
+					statusText.textContent = `Error: ${err.message}`;
+					statusText.style.color = "red";
+					statusText.dataset.status = "error";  // Stable hook for automated tests
+					if (!html5QrcodeScanner && manualContainer.style.display === 'none') startBtn.style.display = 'inline-block';
+
+					// Clear populated fields to emphasize the product wasn't found
+					document.getElementById('ingredient-name').value = "";
+					document.getElementById('ingredient-amount').value = "";
+					document.getElementById('ingredient-unit').value = "";
+					
+					// Flash red outline to grab attention
+					const formElement = document.getElementById('add-ingredient-form');
+					formElement.style.transition = "border 0.3s";
+					formElement.style.border = "2px solid red";
+					formElement.style.padding = "5px";
+					formElement.style.borderRadius = "5px";
+					
+					setTimeout(() => { 
+					    formElement.style.border = "none"; 
+					    formElement.style.padding = "0";
+					}, 2000);
+				});
+		}
+
+		function onScanSuccess(decodedText, decodedResult) {
+			playBeep(); // Audio feedback immediately confirms read!
+			
+			// Lock the UI container immediately to prevent ghost canvas layers from intercepting clicks below it!
+			readerDiv.style.pointerEvents = 'none';
+
+			// Stop scanner asynchronously
+			if (html5QrcodeScanner) {
+				if (typeof html5QrcodeScanner.pause === "function") {
+					html5QrcodeScanner.pause(true);
+				}
+				setTimeout(() => {
+					html5QrcodeScanner.clear().then(() => {
+						readerDiv.style.display = 'none';
+						html5QrcodeScanner = null;
+						startBtn.style.display = 'inline-block';
+					}).catch(error => console.error("Failed to clear scanner.", error));
+				}, 500);
+			}
+
+			// Fire externalized fetch function — trim here too for explicitness at the call site.
+			// html5-qrcode can append a trailing \r on some devices/barcode symbologies.
+			searchProductByBarcode(decodedText.trim());
+		}
+
+		function onScanFailure(error) {
+			// Catch generic browser NotAllowedError for graceful UI fallback
+			if (typeof error === 'string' && (error.includes('NotAllowedError') || error.includes('Permission'))) {
+			    statusText.textContent = "Camera permission denied! Please use 'Type Barcode' instead.";
+			    statusText.style.color = "red";
+			    statusText.style.display = 'block';
+			}
+		}
+	});
 </script>
 {% endblock %}
