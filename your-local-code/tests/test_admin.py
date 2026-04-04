@@ -9,7 +9,7 @@ field would crash the dev server rather than silently fail a test.
 import datetime
 
 import pytest
-from django.contrib.admin.sites import AdminSite
+from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
@@ -27,7 +27,7 @@ def make_ingredient(user, **kwargs):
         date_obtained=today,
         date_expired=today + datetime.timedelta(days=365),
         food_group='DA',
-        unit_measurement='L',
+        unit_measurement=Ingredient.Units.LITER,
         user=user,
     )
     defaults.update(kwargs)
@@ -39,7 +39,8 @@ class TestCustomUserAdmin:
     """Tests for the CustomUserAdmin class."""
 
     def setup_method(self):
-        self.admin = CustomUserAdmin(User, AdminSite())
+        # Use Django's global admin.site to match real behaviour
+        self.admin = CustomUserAdmin(User, admin.site)
 
     def test_ingredient_count_zero(self):
         """Asserts that a user with no ingredients returns 0."""
@@ -53,7 +54,7 @@ class TestCustomUserAdmin:
         assert self.admin.ingredient_count(user) == 1
 
     def test_ingredient_count_multiple(self):
-        """Asserts that ingredient_count reflects the correct total (line 26)."""
+        """Asserts that ingredient_count reflects the correct total."""
         user = User.objects.create_user('manyingredients', 'c@c.com', 'pass')
         make_ingredient(user, name='Milk')
         make_ingredient(user, name='Eggs')

@@ -30,11 +30,11 @@ def make_ingredient(user, **kwargs):
     today = timezone.now().date()
     defaults = dict(
         name='Milk',
-        quantity='2.00',
+        quantity=Decimal('2.00'),
         date_obtained=today,
         date_expired=today + datetime.timedelta(days=365),
-        food_group='DA',
-        unit_measurement='L',
+        food_group=Ingredient.FoodGroups.DAIRY,
+        unit_measurement=Ingredient.Units.LITER,
         user=user,
     )
     defaults.update(kwargs)
@@ -55,22 +55,22 @@ class TestUnauthenticatedRedirects:
     def test_home_redirects(self):
         r = self.client.get(reverse('home'))
         assert r.status_code == 302
-        assert '/accounts/login/' in r['Location']
+        assert '/accounts/login/' in r.url
  
     def test_edit_redirects(self):
         r = self.client.post(reverse('edit_item'), {})
         assert r.status_code == 302
-        assert '/accounts/login/' in r['Location']
+        assert '/accounts/login/' in r.url
  
     def test_delete_redirects(self):
         r = self.client.post(reverse('delete_item', args=[999]))
         assert r.status_code == 302
-        assert '/accounts/login/' in r['Location']
+        assert '/accounts/login/' in r.url
  
     def test_account_settings_redirects(self):
         r = self.client.get(reverse('account_settings'))
         assert r.status_code == 302
-        assert '/accounts/login/' in r['Location']
+        assert '/accounts/login/' in r.url
  
     def test_about_is_public(self):
         assert self.client.get(reverse('about')).status_code == 200
@@ -80,7 +80,7 @@ class TestUnauthenticatedRedirects:
  
  
 # ---------------------------------------------------------------------------
-# Home / add view tests
+# Home / add / delete / edit view tests
 # ---------------------------------------------------------------------------
  
 @pytest.mark.django_db
@@ -103,8 +103,8 @@ class TestInventoryViews:
             'quantity': '5.00',
             'date_obtained': self.today,
             'date_expired': self.tomorrow,
-            'food_group': 'FR',
-            'unit_measurement': 'A',
+            'food_group': Ingredient.FoodGroups.FRUIT,
+            'unit_measurement': Ingredient.Units.AMOUNT,
         }
         data.update(overrides)
         return self.client.post(reverse('home'), data)
@@ -153,6 +153,7 @@ class TestInventoryViews:
         before = Ingredient.objects.count()
         response = self.client.post(reverse('delete_item', args=[self.item.id]))
         assert response.status_code == 302
+        assert response.url == reverse('home')
         assert Ingredient.objects.count() == before - 1
  
     def test_delete_item_get_does_not_delete(self):
@@ -169,7 +170,7 @@ class TestInventoryViews:
         """
         response = self.client.post(reverse('delete_item', args=[99999]))
         assert response.status_code == 302
-        assert response['Location'] == reverse('home')
+        assert response.url == reverse('home')
  
     def test_cannot_delete_another_users_ingredient(self):
         """Ownership check: a user cannot delete another user's ingredient.
@@ -193,11 +194,13 @@ class TestInventoryViews:
         before = Ingredient.objects.count()
         response = self.client.post(reverse('edit_item'), {
             'name': 'Apples', 'quantity': '5.00',
-            'date_expired': self.tomorrow, 'food_group': 'FR',
-            'unit_measurement': 'A', 'date_obtained': self.today,
+            'date_expired': self.tomorrow,
+            'food_group': Ingredient.FoodGroups.FRUIT,
+            'unit_measurement': Ingredient.Units.AMOUNT,
+            'date_obtained': self.today,
         })
         assert response.status_code == 302
-        assert response['Location'] == reverse('home')
+        assert response.url == reverse('home')
         assert Ingredient.objects.count() == before
  
     def test_edit_item_updates_data(self):
@@ -206,8 +209,10 @@ class TestInventoryViews:
         response = self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
             'name': 'Apples', 'quantity': '5.00',
-            'date_expired': self.tomorrow, 'food_group': 'FR',
-            'unit_measurement': 'A', 'date_obtained': self.today,
+            'date_expired': self.tomorrow,
+            'food_group': Ingredient.FoodGroups.FRUIT,
+            'unit_measurement': Ingredient.Units.AMOUNT,
+            'date_obtained': self.today,
         })
         assert response.status_code == 302
         self.item.refresh_from_db()
@@ -226,8 +231,10 @@ class TestInventoryViews:
         response = self.client.post(reverse('edit_item'), {
             'ingredient_id': 99999,
             'name': 'Apples', 'quantity': '5.00',
-            'date_expired': self.tomorrow, 'food_group': 'FR',
-            'unit_measurement': 'A', 'date_obtained': self.today,
+            'date_expired': self.tomorrow,
+            'food_group': Ingredient.FoodGroups.FRUIT,
+            'unit_measurement': Ingredient.Units.AMOUNT,
+            'date_obtained': self.today,
         }, follow=True)
         assert response.status_code == 200
         messages = list(response.context['messages'])
@@ -235,21 +242,16 @@ class TestInventoryViews:
         assert any('not found' in str(m).lower() or 'error' in str(m).lower() for m in messages)
  
     def test_edit_preserves_unchanged_fields(self):
-        """Asserts that an edit updating only the name leaves the quantity unchanged.
- 
-        Uses refresh_from_db() before capturing original_quantity so both sides
-        of the comparison are Decimal instances — not a str vs Decimal mismatch.
-        """
-        self.item.refresh_from_db()
-        original_quantity = self.item.quantity  # Decimal('2.00')
+        """Editing only the name must leave quantity untouched (Decimal == Decimal)."""
+        original_quantity = self.item.quantity  # already Decimal from make_ingredient
  
         self.client.post(reverse('edit_item'), {
             'ingredient_id': self.item.id,
-            'name': 'Creamer',        # changed
-            'quantity': '2.00',       # same value
+            'name': 'Creamer',
+            'quantity': '2.00',
             'date_expired': self.tomorrow,
-            'food_group': 'DA',
-            'unit_measurement': 'L',
+            'food_group': Ingredient.FoodGroups.DAIRY,
+            'unit_measurement': Ingredient.Units.LITER,
             'date_obtained': self.today,
         })
         self.item.refresh_from_db()
@@ -263,28 +265,29 @@ class TestInventoryViews:
         self.client.post(reverse('edit_item'), {
             'ingredient_id': other_item.id,
             'name': 'Hacked', 'quantity': '99',
-            'date_expired': self.tomorrow, 'food_group': 'FR',
-            'unit_measurement': 'A', 'date_obtained': self.today,
+            'date_expired': self.tomorrow,
+            'food_group': Ingredient.FoodGroups.FRUIT,
+            'unit_measurement': Ingredient.Units.AMOUNT,
+            'date_obtained': self.today,
         })
         other_item.refresh_from_db()
         assert other_item.name == 'OtherApple'
  
- 
     def test_edit_unexpected_exception_does_not_crash(self):
-        """Asserts that the except Exception catch-all in edit_ingredient redirects
-        safely and surfaces an error message instead of a 500 (views.py lines 123-125)."""
+        """The except Exception catch-all must redirect and show an error, not 500."""
         from unittest.mock import patch
         with patch('Inventory.views.IngredientForm') as mock_form_class:
             mock_form_class.return_value.is_valid.side_effect = Exception('unexpected boom')
             response = self.client.post(reverse('edit_item'), {
                 'ingredient_id': self.item.id,
                 'name': 'Apples', 'quantity': '5.00',
-                'date_expired': self.tomorrow, 'food_group': 'FR',
-                'unit_measurement': 'A', 'date_obtained': self.today,
+                'date_expired': self.tomorrow,
+                'food_group': Ingredient.FoodGroups.FRUIT,
+                'unit_measurement': Ingredient.Units.AMOUNT,
+                'date_obtained': self.today,
             }, follow=True)
         assert response.status_code == 200
-        messages = list(response.context['messages'])
-        assert any('error' in str(m).lower() for m in messages)
+        assert any('error' in str(m).lower() for m in response.context['messages'])
  
  
 # ---------------------------------------------------------------------------
@@ -361,8 +364,8 @@ class TestInventoryForms:
             'name': 'Salsa',
             'quantity': '3.00',
             'date_expired': self.tomorrow,
-            'food_group': 'FR',
-            'unit_measurement': 'A',
+            'food_group': Ingredient.FoodGroups.FRUIT,
+            'unit_measurement': Ingredient.Units.AMOUNT,
             'date_obtained': self.today,
         }
         data.update(overrides)
@@ -370,7 +373,6 @@ class TestInventoryForms:
  
     def test_invalid_edit_does_not_update(self):
         """Asserts that a POST with a blank quantity leaves the record unchanged."""
-        self.item.refresh_from_db()
         original_quantity = self.item.quantity
         self._post_edit(quantity='')
         self.item.refresh_from_db()
@@ -385,7 +387,6 @@ class TestInventoryForms:
  
     def test_edit_with_negative_quantity_does_not_update(self):
         """Asserts that a negative quantity is rejected and the record is unchanged."""
-        self.item.refresh_from_db()
         original_quantity = self.item.quantity
         self._post_edit(quantity='-3')
         self.item.refresh_from_db()
@@ -418,7 +419,8 @@ class TestInventoryForms:
         self._post_edit(
             name='Milk', quantity='2.00',
             date_expired=self.today, date_obtained=self.yesterday,
-            food_group='DA', unit_measurement='L',
+            food_group=Ingredient.FoodGroups.DAIRY,
+            unit_measurement=Ingredient.Units.LITER,
         )
         self.item.refresh_from_db()
         assert self.item.date_expired == self.today
@@ -447,7 +449,7 @@ class TestSignupViews:
         })
         assert User.objects.count() == before + 1
         assert response.status_code == 302
-        assert response['Location'] == reverse('home')
+        assert response.url == reverse('home')
  
     def test_valid_signup_logs_user_in(self):
         """Asserts the user is logged in after signup (home returns 200, not 302)."""
@@ -502,7 +504,7 @@ class TestAccountSettingsViews:
             'email': 'jane@example.com',
         })
         assert response.status_code == 302
-        assert response['Location'] == reverse('home')
+        assert response.url == reverse('home')
         self.user.refresh_from_db()
         assert self.user.username == 'renamed'
  
