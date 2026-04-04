@@ -35,7 +35,7 @@ class TestUtils:
         assert normalize_unit('ML') == Ingredient.Units.MILLILITER
  
     def test_normalize_unit_unknown_string_returns_unit(self):
-        """Asserts that an unrecognized string falls back to UNIT (line 52)."""
+        """Asserts that an unrecognized string falls back to UNIT."""
         from Inventory.models import Ingredient
         assert normalize_unit('furlongs') == Ingredient.Units.UNIT
  
@@ -136,7 +136,7 @@ class TestUtils:
  
     @patch('Inventory.utils.requests.get')
     def test_fetch_product_info_connection_error(self, mock_get):
-        """Asserts that a generic RequestException is converted to ProductAPIError (line 132)."""
+        """Asserts that a generic RequestException is converted to ProductAPIError."""
         mock_get.side_effect = requests.exceptions.ConnectionError("Network unreachable")
  
         with pytest.raises(ProductAPIError):
@@ -144,7 +144,7 @@ class TestUtils:
  
     @patch('Inventory.utils.requests.get')
     def test_fetch_product_info_malformed_json(self, mock_get):
-        """Asserts that a ValueError from bad JSON is converted to ProductAPIError (line 134)."""
+        """Asserts that a ValueError from bad JSON is converted to ProductAPIError."""
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.raise_for_status.return_value = None

@@ -306,7 +306,7 @@ class TestProductInfoAPIView:
         self.ProductAPIError = ProductAPIError
  
     def test_post_with_valid_barcode_calls_fetch(self):
-        """Asserts that a POST with a valid barcode in the JSON body is accepted (line 205)."""
+        """Asserts that a POST with a valid barcode in the JSON body is accepted."""
         from unittest.mock import patch
         mock_data = {
             'product_name_en': 'Test Product',
@@ -324,7 +324,7 @@ class TestProductInfoAPIView:
         assert 'name' in response.json()
  
     def test_product_not_found_returns_404(self):
-        """Asserts that ProductNotFoundError returns HTTP 404 (views.py lines 227-229)."""
+        """Asserts that ProductNotFoundError returns HTTP 404."""
         from unittest.mock import patch
         with patch('Inventory.views.fetch_product_info', side_effect=self.ProductNotFoundError('not found')):
             response = self.client.get(reverse('product_info_api'), {'barcode': '12345678'})
@@ -332,7 +332,7 @@ class TestProductInfoAPIView:
         assert 'error' in response.json()
  
     def test_product_api_error_returns_502(self):
-        """Asserts that ProductAPIError returns HTTP 502 (views.py lines 231-233)."""
+        """Asserts that ProductAPIError returns HTTP 502."""
         from unittest.mock import patch
         with patch('Inventory.views.fetch_product_info', side_effect=self.ProductAPIError('timeout')):
             response = self.client.get(reverse('product_info_api'), {'barcode': '12345678'})
