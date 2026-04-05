@@ -479,6 +479,10 @@
 		});
 
 		function searchProductByBarcode(decodedText) {
+			// Defense-in-depth: always strip surrounding whitespace/CR/LF regardless
+			// of whether the caller is the scanner (which may append \r) or manual entry.
+			decodedText = decodedText.trim();
+
 			// Reset state from any previous lookup before starting a new one.
 			// delete dataset.status is symmetric with how we set it (dataset.status = ...)
 			// and avoids the undefined vs empty-string ambiguity of removeAttribute.
@@ -560,8 +564,9 @@
 				}, 500);
 			}
 
-			// Fire externalized fetch function
-			searchProductByBarcode(decodedText);
+			// Fire externalized fetch function — trim here too for explicitness at the call site.
+			// html5-qrcode can append a trailing \r on some devices/barcode symbologies.
+			searchProductByBarcode(decodedText.trim());
 		}
 
 		function onScanFailure(error) {

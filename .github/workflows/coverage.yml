@@ -35,7 +35,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r your-local-code/requirements.txt
-          pip install pytest pytest-django pytest-cov
+          pip install -r your-local-code/requirements-pytest.txt
 
       - name: Run Coverage Check & Generate XML
         env:
