@@ -170,37 +170,46 @@ class Tag(models.Model):
             ONE_POT = 'One Pot', 'One Pot'
             NO_COOK = 'No Cook', 'No Cook'
 
-        name = models.CharField(
-            max_length=50, 
-            unique=True
-            choices=AllowedTags.choices
-        )
+    name = models.CharField(
+        max_length=50, 
+        unique=True,
+        choices=AllowedTags.choices
+    )
+
+    class Meta:
+        verbose_name = "System Tag"
+        verbose_name_plural = "System Tags"
 
     def __str__(self):
-        return self.name
+        return self.get_name_display()
 
 class RecipeModel(models.Model):
     """Represents a recipe in MyPantry."""
-
     name = models.CharField(
-        max_length = 100
+        max_length = 100,
         help_text = "Represents the name of the recipe."
     )
 
-    prepTime = models.PositiveIntegerField(
+    prep_time = models.PositiveIntegerField(
         help_text = "Represents the approximate time a recipe will take to make in minutes."
     )
 
-    cookTime = models.PositiveIntegerField(
+    cook_time = models.PositiveIntegerField(
         help_text = "Represents the approximate time a recipe will take to cook. Doesn't neccesarily require the user to be doing anything."
     )
 
-    description = models.textField(
-        max_length = 100000
+    description = models.TextField(
+        max_length = 100000,
         help_text = "Represents the detailed description of a recipe."
     )
 
     tags = models.ManyToManyField(Tag, blank=True)
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="recipes"
+    )
     
     def clean(self) -> None:
         """Validates all business rules before saving a recipe.
@@ -210,4 +219,22 @@ class RecipeModel(models.Model):
 
         Raises:
             ValidationError: If the name is blank, if prep time is at or
-            under 0 minutes, if cook time is negative
+            under 0 minutes, if cook time is negative, if description is
+            blank."""
+        if self.name == "":
+            raise ValidationError("What exactly are you putting in?")
+        if not re.match(NAME_REGEX, self.name):
+            raise ValidationError("Name must contain only letters and spaces")
+
+        if self.prep_time <= 0:
+            raise ValidationError("Prep time can't be 0 minutes or less.")
+        if self.cook_time < 0:
+            raise ValidationError("Cook time can't be negative.")
+
+        if self.description == "":
+            raise ValidationError("There needs to be something in the description field.")
+
+    # (Force validation on every save.)
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
