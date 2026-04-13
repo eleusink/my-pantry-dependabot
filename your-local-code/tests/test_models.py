@@ -230,7 +230,8 @@ def test_recipe_validation_errors(base_recipe_data, field, invalid_value):
 
 def test_valid_recipe(base_recipe_data):
     """Assert that a recipe with the correct information can be saved as normal."""
-    recipe = Recipe(**base_recipe_data).full_clean() # Shouldn't raise
+    recipe = Recipe(**base_recipe_data)
+    recipe.full_clean() # Shouldn't raise
 
 # ---------------------------------------------------------------------------
 # Tag Model Tests
@@ -253,6 +254,7 @@ def test_invalid_tag_choice():
 # Tag Recipe Relationship Tests
 # ---------------------------------------------------------------------------
 
+@pytest.mark.django_db
 def test_tag_recipe_relationship(base_recipe_data):
     """Asserts that tags can be associated with recipes."""
     recipe = Recipe.objects.create(**base_recipe_data)

@@ -210,6 +210,9 @@ class Recipe(models.Model):
         on_delete=models.CASCADE,
         related_name="recipes"
     )
+
+    def str(self):
+        return self.name
     
     def clean(self) -> None:
         """Validates all business rules before saving a recipe.
