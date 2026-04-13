@@ -137,38 +137,38 @@ class Ingredient(models.Model):
 
 class Tag(models.Model):
     """This is an individual model used to help keep track of the tags a recipe can have."""
-        class AllowedTags(models.TextChoices):
-            # PREFERENCES/LIFESTYLE
-            VEGETARIAN = 'Vegetarian', 'Vegetarian'
-            VEGAN = 'Vegan', 'Vegan'
-            GLUTEN_FREE = 'Gluten-Free', 'Gluten-Free'
-            DAIRY_FREE = 'Dairy-Free', 'Dairy-Free'
-            KETO = 'Keto', 'Keto'
-            PALEO = 'Paleo', 'Paleo'
-            LOW_CARB = 'Low Carb', 'Low Carb'
-            HALAL = 'Halal', 'Halal'
+    class AllowedTags(models.TextChoices):
+        # PREFERENCES/LIFESTYLE
+        VEGETARIAN = 'Vegetarian', 'Vegetarian'
+        VEGAN = 'Vegan', 'Vegan'
+        GLUTEN_FREE = 'Gluten-Free', 'Gluten-Free'
+        DAIRY_FREE = 'Dairy-Free', 'Dairy-Free'
+        KETO = 'Keto', 'Keto'
+        PALEO = 'Paleo', 'Paleo'
+        LOW_CARB = 'Low Carb', 'Low Carb'
+        HALAL = 'Halal', 'Halal'
 
-            # ALLERGENS
-            MILK_FREE = 'Milk-Free', 'Milk-Free'
-            PEANUT_FREE = 'Peanut-Free', 'Peanut-Free'
-            TREENUT_FREE = 'Tree Nut-Free', 'Tree Nut-Free'
-            EGG_FREE = 'Egg-Free', 'Egg-Free'
-            FISH_FREE = 'Fish-Free', 'Fish-Free'
-            SHELLFISH_FREE = 'Shellfish-Free', 'Shellfish-Free'
-            WHEAT_FREE = 'Wheat-Free', 'Wheat-Free'
-            SESAME_FREE = 'Sesame-Free', 'Sesame-Free'
-            SOY_FREE = 'Soy-Free', 'Soy-Free'
+        # ALLERGENS
+        MILK_FREE = 'Milk-Free', 'Milk-Free'
+        PEANUT_FREE = 'Peanut-Free', 'Peanut-Free'
+        TREENUT_FREE = 'Tree Nut-Free', 'Tree Nut-Free'
+        EGG_FREE = 'Egg-Free', 'Egg-Free'
+        FISH_FREE = 'Fish-Free', 'Fish-Free'
+        SHELLFISH_FREE = 'Shellfish-Free', 'Shellfish-Free'
+        WHEAT_FREE = 'Wheat-Free', 'Wheat-Free'
+        SESAME_FREE = 'Sesame-Free', 'Sesame-Free'
+        SOY_FREE = 'Soy-Free', 'Soy-Free'
 
-            # MEAL TYPE
-            BREAKFAST = 'Breakfast', 'Breakfast'
-            LUNCH = 'Lunch', 'Lunch'
-            DINNER = 'Dinner', 'Dinner'
-            SNACK = 'Snack', 'Snack'
-            DESSERT = 'Dessert', 'Dessert'
+        # MEAL TYPE
+        BREAKFAST = 'Breakfast', 'Breakfast'
+        LUNCH = 'Lunch', 'Lunch'
+        DINNER = 'Dinner', 'Dinner'
+        SNACK = 'Snack', 'Snack'
+        DESSERT = 'Dessert', 'Dessert'
 
-            # PREP TYPE
-            ONE_POT = 'One Pot', 'One Pot'
-            NO_COOK = 'No Cook', 'No Cook'
+        # PREP TYPE
+        ONE_POT = 'One Pot', 'One Pot'
+        NO_COOK = 'No Cook', 'No Cook'
 
     name = models.CharField(
         max_length=50, 
@@ -183,7 +183,7 @@ class Tag(models.Model):
     def __str__(self):
         return self.get_name_display()
 
-class RecipeModel(models.Model):
+class Recipe(models.Model):
     """Represents a recipe in MyPantry."""
     name = models.CharField(
         max_length = 100,
