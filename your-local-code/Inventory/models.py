@@ -133,3 +133,38 @@ class Ingredient(models.Model):
             "Milk (2.00 Liter)".
         """
         return f"{self.name} ({self.quantity} {self.get_unit_measurement_display()})"
+
+
+class Tag(models.Model):
+    """This is an individual model used to help keep track of the tags a recipe can have."""
+        class AllowedTags(models.TextChoices):
+
+
+        name = models.CharField(
+            max_length=50, 
+            unique=True
+            choices=AllowedTags.choices
+        )
+
+    def __str__(self):
+        return self.name
+
+class RecipeModel(models.Model):
+    """Represents a recipe in MyPantry."""
+
+    name = models.CharField(
+        max_length = 100
+        help_text = "Represents the name of the recipe."
+    )
+
+    prepTime = models.PositiveIntegerField(
+        help_text = "Represents the approximate time a recipe will take to make in minutes."
+    )
+
+    description = models.textField(
+        max_length = 100000
+        help_text = "Represents the detailed description of a recipe."
+    )
+
+    tags = models.ManyToManyField(Tag, blank=True)
+    
