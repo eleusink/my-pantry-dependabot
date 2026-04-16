@@ -1,7 +1,7 @@
 from django import forms
 from .models import Ingredient
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserChangeForm
+from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
 
 class IngredientForm(forms.ModelForm):
@@ -26,6 +26,17 @@ class IngredientForm(forms.ModelForm):
         """
         cleaned_data = super().clean()
         return cleaned_data
+
+
+class CustomUserCreationForm(UserCreationForm):
+    email = forms.EmailField(required=True)
+    first_name = forms.CharField(required=True)
+    last_name = forms.CharField(required=True)
+
+
+    class Meta: 
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
 
 
 class CustomUserChangeForm(UserChangeForm):
