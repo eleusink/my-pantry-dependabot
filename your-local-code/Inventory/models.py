@@ -133,3 +133,111 @@ class Ingredient(models.Model):
             "Milk (2.00 Liter)".
         """
         return f"{self.name} ({self.quantity} {self.get_unit_measurement_display()})"
+
+
+class Tag(models.Model):
+    """This is an individual model used to help keep track of the tags a recipe can have."""
+    class AllowedTags(models.TextChoices):
+        # PREFERENCES/LIFESTYLE
+        VEGETARIAN = 'Vegetarian', 'Vegetarian'
+        VEGAN = 'Vegan', 'Vegan'
+        GLUTEN_FREE = 'Gluten-Free', 'Gluten-Free'
+        DAIRY_FREE = 'Dairy-Free', 'Dairy-Free'
+        KETO = 'Keto', 'Keto'
+        PALEO = 'Paleo', 'Paleo'
+        LOW_CARB = 'Low Carb', 'Low Carb'
+        HALAL = 'Halal', 'Halal'
+
+        # ALLERGENS
+        MILK_FREE = 'Milk-Free', 'Milk-Free'
+        PEANUT_FREE = 'Peanut-Free', 'Peanut-Free'
+        TREENUT_FREE = 'Tree Nut-Free', 'Tree Nut-Free'
+        EGG_FREE = 'Egg-Free', 'Egg-Free'
+        FISH_FREE = 'Fish-Free', 'Fish-Free'
+        SHELLFISH_FREE = 'Shellfish-Free', 'Shellfish-Free'
+        WHEAT_FREE = 'Wheat-Free', 'Wheat-Free'
+        SESAME_FREE = 'Sesame-Free', 'Sesame-Free'
+        SOY_FREE = 'Soy-Free', 'Soy-Free'
+
+        # MEAL TYPE
+        BREAKFAST = 'Breakfast', 'Breakfast'
+        LUNCH = 'Lunch', 'Lunch'
+        DINNER = 'Dinner', 'Dinner'
+        SNACK = 'Snack', 'Snack'
+        DESSERT = 'Dessert', 'Dessert'
+
+        # PREP TYPE
+        ONE_POT = 'One Pot', 'One Pot'
+        NO_COOK = 'No Cook', 'No Cook'
+
+    name = models.CharField(
+        max_length=50, 
+        unique=True,
+        choices=AllowedTags.choices
+    )
+
+    class Meta:
+        verbose_name = "System Tag"
+        verbose_name_plural = "System Tags"
+
+    def __str__(self):
+        return self.get_name_display()
+
+class Recipe(models.Model):
+    """Represents a recipe in MyPantry."""
+    name = models.CharField(
+        max_length = 100,
+        help_text = "Represents the name of the recipe."
+    )
+
+    prep_time = models.PositiveIntegerField(
+        help_text = "Represents the approximate time a recipe will take to make in minutes."
+    )
+
+    cook_time = models.PositiveIntegerField(
+        help_text = "Represents the approximate time a recipe will take to cook. Doesn't neccesarily require the user to be doing anything."
+    )
+
+    description = models.TextField(
+        max_length = 100000,
+        help_text = "Represents the detailed description of a recipe."
+    )
+
+    tags = models.ManyToManyField(Tag, blank=True)
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="recipes"
+    )
+
+    def str(self):
+        return self.name
+    
+    def clean(self) -> None:
+        """Validates all business rules before saving a recipe.
+        Much like ingredients, centralizing validation logic here ensures 
+        no bad information is submitted, regardless of logic layers above 
+        models.
+
+        Raises:
+            ValidationError: If the name is blank, if prep time is at or
+            under 0 minutes, if cook time is negative, if description is
+            blank."""
+        if self.name == "":
+            raise ValidationError("What exactly are you putting in?")
+        if not re.match(NAME_REGEX, self.name):
+            raise ValidationError("Name must contain only letters and spaces")
+
+        if self.prep_time <= 0:
+            raise ValidationError("Prep time can't be 0 minutes or less.")
+        if self.cook_time < 0:
+            raise ValidationError("Cook time can't be negative.")
+
+        if self.description == "":
+            raise ValidationError("There needs to be something in the description field.")
+
+    # (Force validation on every save.)
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
