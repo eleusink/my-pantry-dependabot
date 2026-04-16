@@ -444,26 +444,35 @@ class TestSignupViews:
         before = User.objects.count()
         response = self.client.post(reverse('signup'), {
             'username': 'newuser',
+            'first_name': 'New',
+            'last_name': 'User',
+            'email': 'newuser@example.com',
             'password1': 'SuperSecret99!',
             'password2': 'SuperSecret99!',
         })
         assert User.objects.count() == before + 1
         assert response.status_code == 302
-        assert response.url == reverse('home')
+        assert response.url == reverse('login')
  
     def test_valid_signup_logs_user_in(self):
         """Asserts the user is logged in after signup (home returns 200, not 302)."""
         self.client.post(reverse('signup'), {
             'username': 'newuser',
+            'first_name': 'New',
+            'last_name': 'User',
+            'email': 'newuser@example.com',
             'password1': 'SuperSecret99!',
             'password2': 'SuperSecret99!',
         })
-        assert self.client.get(reverse('home')).status_code == 200
+        assert self.client.get(reverse('login')).status_code == 200
  
     def test_mismatched_passwords_does_not_create_user(self):
         before = User.objects.count()
         self.client.post(reverse('signup'), {
             'username': 'baduser',
+            'first_name': 'Bad',
+            'last_name': 'User',
+            'email': 'baduser@example.com',
             'password1': 'SuperSecret99!',
             'password2': 'DifferentPass99!',
         })
@@ -474,6 +483,9 @@ class TestSignupViews:
         before = User.objects.count()
         self.client.post(reverse('signup'), {
             'username': 'taken',
+            'first_name': 'Taken',
+            'last_name': 'User',
+            'email': 'taken@example.com',
             'password1': 'SuperSecret99!',
             'password2': 'SuperSecret99!',
         })
