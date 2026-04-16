@@ -41,9 +41,11 @@ def home(request):
 
     # Query ingredients from database
     items = Ingredient.objects.select_related('user').filter(user=request.user)
+    groups = [choice[1] for choice in Ingredient.FoodGroups.choices]
     return render(request, 'home.html', {
         'form': form,
         'items': items,
+        'groups': groups,
     })
 
 def signup(request):

@@ -132,4 +132,4 @@ class Ingredient(models.Model):
             A string in the format "Name (quantity unit)", e.g.
             "Milk (2.00 Liter)".
         """
-        return f"{self.name} ({self.quantity} {self.get_unit_measurement_display()})"
+        return f"{self.name} ({self.quantity} {self.unit_measurement})"
