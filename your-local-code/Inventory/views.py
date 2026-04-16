@@ -12,6 +12,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
 from .models import Ingredient
+import json
+import os
+from openai import OpenAI
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from .models import Ingredient, Recipe
 
 
 @login_required
@@ -41,11 +47,12 @@ def home(request):
 
     # Query ingredients from database
     items = Ingredient.objects.select_related('user').filter(user=request.user)
+    saved_recipes = Recipe.objects.filter(user=request.user)
     return render(request, 'home.html', {
         'form': form,
         'items': items,
+        'saved_recipes': saved_recipes,
     })
-
 def signup(request):
     """Handles new user registration.
 
@@ -233,3 +240,105 @@ def product_info_api(request) -> Response:
             {"error": str(e)},
             status=status.HTTP_502_BAD_GATEWAY
         )
+
+
+@login_required
+def generate_recipes(request):
+    import datetime
+    today = datetime.date.today()
+    soon = today + datetime.timedelta(days=3)
+
+    priority = Ingredient.objects.filter(
+        user=request.user,
+        date_expired__gte=today,
+        date_expired__lte=soon,
+    ).order_by('date_expired')
+
+    others = Ingredient.objects.filter(
+        user=request.user,
+        date_expired__gt=soon,
+    ).order_by('date_expired')
+
+    all_ingredients = list(priority) + list(others)
+
+    if not all_ingredients:
+        return JsonResponse(
+            {'error': 'No available ingredients found. Add some ingredients first.'},
+            status=400
+        )
+
+    priority_ids = set(i.id for i in priority)
+    ingredient_lines = []
+    for ing in all_ingredients:
+        flag = " [USE FIRST — expiring soon]" if ing.id in priority_ids else ""
+        ingredient_lines.append(
+            f"- {ing.name}: {ing.quantity} {ing.get_unit_measurement_display()}{flag}"
+        )
+    ingredient_text = "\n".join(ingredient_lines)
+
+    prompt = f"""You are a helpful recipe assistant. Given the following pantry ingredients, suggest 3 realistic recipes.
+
+Ingredients available:
+{ingredient_text}
+
+Rules:
+- Prioritize ingredients marked [USE FIRST — expiring soon]
+- You may assume basic pantry staples (salt, pepper, oil, water) are available
+- Each recipe must only use ingredients from the list above (plus staples)
+
+Respond ONLY with a valid JSON array (no markdown, no explanation) in this exact format:
+[
+  {{
+    "name": "Recipe Name",
+    "prep_time": 30,
+    "description": "A short 1-2 sentence description.",
+    "ingredients_used": ["ingredient 1", "ingredient 2"],
+    "steps": ["Step 1: ...", "Step 2: ..."],
+    "tag": "Dinner"
+  }}
+]
+
+Tags must be one of: Breakfast, Lunch, Dinner, Snack, Dessert, Vegetarian, Vegan, Other"""
+
+    try:
+        client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+        response = client.chat.completions.create(
+            model="gpt-5-mini",
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        raw = response.choices[0].message.content.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1]
+            raw = raw.rsplit("```", 1)[0]
+
+        recipes = json.loads(raw)
+        return JsonResponse({'recipes': recipes})
+
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {'error': 'AI returned an unexpected format. Please try again.'},
+            status=500
+        )
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def save_recipe(request):
+    try:
+        data = json.loads(request.body)
+        recipe = Recipe.objects.create(
+            user=request.user,
+            name=data.get('name', 'Unnamed Recipe'),
+            prep_time=int(data.get('prep_time', 1)),
+            cook_time=0,
+            description=data.get('description', ''),
+            ingredients_used=', '.join(data.get('ingredients_used', [])),
+            steps='\n'.join(data.get('steps', [])),
+            tag=data.get('tag', 'Other'),
+        )
+        return JsonResponse({'success': True, 'id': recipe.id})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)

@@ -14,7 +14,7 @@
       <div class="panel expandable" id="ingredients-panel">
 	      <div class="panel-header">
 		      <h2>My Ingredients</h2>
-		      <button class="toggle-btn" type="button" onclick="togglePanel('ingredients-panel')">
+		      <button class="toggle-btn" type="button" onclick="togglePanel('ingredients-panel', this)">
 			      Expand
 		      </button>
 	      </div>
@@ -122,26 +122,47 @@
       </div>
 
       <!-- Recipes -->
-      <div class="panel expandable" id="recipes-panel">
-	      <div class="panel-header">
-		      <h2>Recipes</h2>
-		      <button class="toggle-btn" type="button" onclick="togglePanel('recipes-panel')">
-			      Expand
-		      </button>
-	      </div>
+<div class="panel expandable" id="recipes-panel">
+    <div class="panel-header">
+        <h2>Recipes</h2>
+        <div class="recipe-header-actions">
+            <button class="toggle-btn" type="button" onclick="togglePanel('recipes-panel', this)">
+                Expand
+            </button>
+        </div>
+    </div>
 
-	      <div class="panel-body">
-		      <p>Saved Recipes will appear here.</p>
-		      <ul class="simple-list">
-		      </ul>
-	      </div>
-      </div>
+    <div class="panel-body">
+		{% if saved_recipes %}
+			{% for recipe in saved_recipes %}
+			<div class="recipe-card">
+				<div class="recipe-card-collapsed">
+					<span class="recipe-title">{{ recipe.name }}</span>
+					<span class="recipe-meta">{{ recipe.prep_time }} min</span>
+					<button class="toggle-btn" type="button" onclick="toggleRecipeCard(this)">Expand</button>
+				</div>
+				<p class="recipe-description">{{ recipe.description }}</p>
+				<div class="recipe-card-expanded" style="display:none;">
+					<p class="recipe-ingredients"><strong>Ingredients:</strong> {{ recipe.ingredients_used }}</p>
+					<ol class="recipe-steps">
+						{% for step in recipe.steps.splitlines %}
+							<li>{{ step }}</li>
+						{% endfor %}
+					</ol>
+				</div>
+			</div>
+			{% endfor %}
+		{% else %}
+			<p>No saved recipes yet.</p>
+		{% endif %}
+	</div>
+</div>
 
       <!-- Notifications -->
       <div class="panel expandable" id="notifications-panel">
 	      <div class="panel-header">
 		      <h2>Notifications</h2>
-		      <button class="toggle-btn" type="button" onclick="togglePanel('notifications-panel')">
+		      <button class="toggle-btn" type="button" onclick="togglePanel('notifications-panel', this)">
 			      Expand
 		      </button>
 	      </div>
@@ -195,9 +216,13 @@
     </section>
 
     <section class="panel-wide">
-      <div class="panel wide">
+      <div class="panel wide" id="suggest-recipes-panel">
 	      <div class="panel-header">
 		      <h2>Suggest Recipes</h2>
+			  <button class="toggle-btn" type="button" onclick="generateRecipes()">
+    	        Generate
+	        </button>
+
 	      </div>
 	      <div class="panel-body">
 		      <p>This section can later show recommended meals based on what the user already has.</p>
@@ -209,14 +234,111 @@
 
 {# Script is used to accurately replicate the correct fields for each item and to correctly edit or delete each item.  #}
 <script>
-	function togglePanel(panelId) {
-		const panel = document.getElementById(panelId);
-		const button = panel.querySelector('.toggle-btn');
-
-		panel.classList.toggle('expanded');
-		button.textContent = panel.classList.contains('expanded') ? 'Collapse' : 'Expand';
+	function togglePanel(panelId, btn) {
+    	const panel = document.getElementById(panelId);
+    	panel.classList.toggle('expanded');
+    	btn.textContent = panel.classList.contains('expanded') ? 'Collapse' : 'Expand';
 	}
 
+	function generateRecipes() {
+		fetch("{% url 'generate_recipes' %}")
+			.then(res => res.json())
+			.then(data => {
+				if (data.error) {
+					alert(data.error);
+					return;
+				}
+
+				const panel = document.querySelector('#suggest-recipes-panel .panel-body');
+				panel.innerHTML = '';
+
+				data.recipes.forEach(recipe => {
+					const card = document.createElement('div');
+					card.className = 'recipe-card';
+					card.innerHTML = `
+						<div class="recipe-card-collapsed">
+							<span class="recipe-title">${recipe.name}</span>
+							<span class="recipe-meta">${recipe.prep_time} min</span>
+							<button class="toggle-btn recipe-expand-btn" type="button" onclick="toggleRecipeCard(this)">Expand</button>
+						</div>
+						<div class="recipe-card-expanded" style="display:none;">
+							<p class="recipe-description">${recipe.description}</p>
+							<p class="recipe-ingredients"><strong>Ingredients:</strong> ${recipe.ingredients_used.join(', ')}</p>
+							<ol class="recipe-steps">
+								${recipe.steps.map(s => `<li>${s}</li>`).join('')}
+							</ol>
+							<button class="toggle-btn recipe-save-btn" type="button" onclick="saveRecipe(this)" data-recipe='${JSON.stringify(recipe).replace(/'/g, "&#39;")}'>
+								Save Recipe
+							</button>
+						</div>
+					`;
+					panel.appendChild(card);
+				});
+			})
+			.catch(err => {
+				alert('Something went wrong. Please try again.');
+				console.error(err);
+			});
+	}
+
+	function toggleRecipeCard(btn) {
+		const card = btn.closest('.recipe-card');
+		const expanded = card.querySelector('.recipe-card-expanded');
+		const isOpen = expanded.style.display !== 'none';
+		expanded.style.display = isOpen ? 'none' : 'block';
+		btn.textContent = isOpen ? 'Expand' : 'Collapse';
+	}
+
+	function saveRecipe(btn) {
+		const recipe = JSON.parse(btn.getAttribute('data-recipe'));
+
+		fetch("{% url 'save_recipe' %}", {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'X-CSRFToken': '{{ csrf_token }}',
+			},
+			body: JSON.stringify(recipe),
+		})
+		.then(res => res.json())
+		.then(data => {
+			if (data.success) {
+				btn.textContent = '✅ Saved';
+				btn.disabled = true;
+				addSavedRecipeCard(recipe);
+			} else {
+				alert('Failed to save: ' + (data.error || 'Unknown error'));
+			}
+		})
+		.catch(() => {
+			alert('Something went wrong saving the recipe.');
+		});
+	}
+
+	function addSavedRecipeCard(recipe) {
+		const panel = document.querySelector('#recipes-panel .panel-body');
+
+		const placeholder = panel.querySelector('p');
+		if (placeholder) placeholder.remove();
+
+		const card = document.createElement('div');
+		card.className = 'recipe-card';
+		card.innerHTML = `
+			<div class="recipe-card-collapsed">
+				<span class="recipe-title">${recipe.name}</span>
+				<span class="recipe-meta">${recipe.prep_time} min</span>
+				<button class="toggle-btn" type="button" onclick="toggleRecipeCard(this)">Expand</button>
+			</div>
+			<p class="recipe-description">${recipe.description}</p>
+			<div class="recipe-card-expanded" style="display:none;">
+				<p class="recipe-ingredients"><strong>Ingredients:</strong> ${recipe.ingredients_used.join(', ')}</p>
+				<ol class="recipe-steps">
+					${recipe.steps.map(s => `<li>${s}</li>`).join('')}
+				</ol>
+			</div>
+		`;
+		panel.appendChild(card);
+	}
 
 	function validateNameCharacters(input) {
 		debugger;
