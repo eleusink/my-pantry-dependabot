@@ -398,7 +398,7 @@ def bulk_upload_start(request):
             ]}
 
             for idx, row in enumerate(reader, start=1):
-                clean_row = {k.strip().lower(): v.strip() for k, v in row.items() if k}
+                clean_row = {k.strip().lower(): (v or '').strip() for k, v in row.items() if k}
                 
                 name = clean_row.get('name', '')
                 quantity = clean_row.get('quantity', '')
