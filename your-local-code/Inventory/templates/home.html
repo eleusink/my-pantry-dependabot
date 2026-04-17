@@ -25,6 +25,7 @@
 				  <div style="margin-bottom: 10px;">
 					  <button type="button" id="start-scan-btn" style="padding: 8px 16px;">📷 Scan Barcode</button>
 					  <button type="button" id="toggle-manual-btn" style="padding: 8px 16px; margin-left: 10px;">⌨️ Type Barcode</button>
+					  <button type="button" id="bulk-import-btn" style="padding: 8px 16px; margin-left: 10px;" onclick="openBulkImportModal()">📁 Bulk Import</button>
 				  </div>
 
 				  <div id="manual-entry-container" style="display: none; margin-bottom: 15px;">
@@ -539,6 +540,29 @@
     `;
 
     openModal("Confirm Deletion", modalBody);
+	}
+
+	function openBulkImportModal() {
+		const formContent = `
+		<form method="POST" action="{% url 'bulk_upload_start' %}" enctype="multipart/form-data">
+			{% csrf_token %}
+			<div class="form-group" style="text-align: center; margin-bottom: 20px;">
+				<p style="margin-bottom: 10px;">Upload a CSV file to carefully add multiple items at once.</p>
+				<a href="{% url 'csv_template_download' %}" style="display: inline-block; padding: 6px 12px; background: #e9ecef; border: 1px solid #ccc; border-radius: 4px; color: #333; text-decoration: none; font-weight: bold;">
+					<i class="fa fa-download"></i> Download CSV Template
+				</a>
+			</div>
+			<div class="form-group" style="margin-bottom: 20px;">
+				<label for="id_file">Select a CSV File</label>
+				<input type="file" name="file" id="id_file" accept=".csv" required style="width: 100%; border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+			</div>
+			<div class="modal-actions">
+				<button type="submit">Upload & Preview</button>
+				<button type="button" onclick="closeModal()">Cancel</button>
+			</div>
+		</form>
+		`;
+		openModal('Bulk Import Ingredients', formContent);
 	}
 </script>
 
