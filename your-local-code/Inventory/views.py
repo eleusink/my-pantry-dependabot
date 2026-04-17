@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import BarcodeRequestSerializer
-from .utils import fetch_product_info, normalize_unit, ProductNotFoundError, ProductAPIError
+from .utils import fetch_product_info, normalize_unit, normalize_group, ProductNotFoundError, ProductAPIError
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from .forms import IngredientForm, CustomUserChangeForm, CustomUserCreationForm
 from django.contrib.auth.decorators import login_required
@@ -408,13 +408,6 @@ def bulk_upload_start(request):
                 return redirect('home')
 
             parsed_rows = []
-            
-            # Case-insensitive logical mappings back to backend CHOICES (units handled by normalize_unit)
-            group_map = {k.lower(): v for k, v in [
-                ('Fruit', 'FR'), ('Vegetable', 'VE'), ('Grain', 'GR'), 
-                ('Protein', 'PR'), ('Dairy', 'DA'), ('Snack', 'SN'), 
-                ('Beverage', 'BE'), ('Other', 'OT')
-            ]}
 
             for idx, row in enumerate(reader, start=1):
                 clean_row = {k.strip().lower(): (v or '').strip() for k, v in row.items() if k}
@@ -427,7 +420,7 @@ def bulk_upload_start(request):
                 group_raw = clean_row.get('food_group', '')
 
                 unit_mapped = normalize_unit(unit_raw)
-                group_mapped = group_map.get(group_raw.lower(), group_raw)
+                group_mapped = normalize_group(group_raw)
 
                 form_data = {
                     'name': name,
