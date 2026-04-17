@@ -491,21 +491,27 @@ def bulk_upload_preview(request):
 
         try:
             with transaction.atomic():
+                from .forms import IngredientForm
                 ingredients_to_create = []
+
                 for row in rows_to_save:
-                    ingredients_to_create.append(Ingredient(
-                        user=request.user,
-                        name=row['name'],
-                        quantity=row['quantity'],
-                        unit_measurement=row['unit_measurement'],
-                        date_obtained=row['date_obtained'],
-                        date_expired=row['date_expired'],
-                        food_group=row['food_group'],
-                    ))
+                    # Trust boundary defense: force coercion of strings to Dates/Decimals (I don't trust Python's type guessing.)
+                    final_form = IngredientForm(data=row)
+                    if not final_form.is_valid():
+                        raise ValidationError(f"Invalid or tampered data: {final_form.errors}")
+                    
+                    instance = final_form.save(commit=False)
+                    instance.user = request.user
+                    
+                    # Execute structural constraints as bulk_create skips .clean() and .save()
+                    instance.full_clean()
+                    ingredients_to_create.append(instance)
+
                 Ingredient.objects.bulk_create(ingredients_to_create)
 
             # Clean memory buffer upon success
             del request.session['bulk_upload_data']
+            request.session.modified = True
             messages.success(request, f"Successfully imported {len(ingredients_to_create)} items.")
             return redirect('home')
 
