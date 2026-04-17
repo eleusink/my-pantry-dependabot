@@ -61,6 +61,8 @@ def base_recipe_data(base_user):
         'prep_time': 15,
         'cook_time': 30,
         'description': 'A description of a meal.',
+        'ingredients_used': '1 cup flour, 2 eggs',
+        'steps': '1. Mix\n2. Bake',
         'user': base_user,
     }
  
@@ -255,14 +257,9 @@ def test_invalid_tag_choice():
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-def test_tag_recipe_relationship(base_recipe_data):
-    """Asserts that tags can be associated with recipes."""
+def test_recipe_tag_field(base_recipe_data):
+    """Asserts that a recipe can be categorized using the string tag field."""
+    base_recipe_data['tag'] = 'Vegan'
     recipe = Recipe.objects.create(**base_recipe_data)
 
-    vegan_tag = Tag.objects.create(name=Tag.AllowedTags.VEGAN)
-    keto_tag = Tag.objects.create(name=Tag.AllowedTags.KETO)
-
-    recipe.tags.add(vegan_tag, keto_tag)
-
-    assert recipe.tags.count() == 2
-    assert vegan_tag in recipe.tags.all()
+    assert recipe.tag == 'Vegan'

@@ -186,58 +186,57 @@ class Tag(models.Model):
 class Recipe(models.Model):
     """Represents a recipe in MyPantry."""
     name = models.CharField(
-        max_length = 100,
-        help_text = "Represents the name of the recipe."
+        max_length=100,
+        help_text="Represents the name of the recipe."
     )
-
     prep_time = models.PositiveIntegerField(
-        help_text = "Represents the approximate time a recipe will take to make in minutes."
+        help_text="Approximate prep time in minutes."
     )
-
     cook_time = models.PositiveIntegerField(
-        help_text = "Represents the approximate time a recipe will take to cook. Doesn't neccesarily require the user to be doing anything."
+        default=0,
+        help_text="Approximate cook time in minutes."
     )
-
     description = models.TextField(
-        max_length = 100000,
-        help_text = "Represents the detailed description of a recipe."
+        help_text="Detailed description of the recipe."
     )
-
-    tags = models.ManyToManyField(Tag, blank=True)
-
+    ingredients_used = models.TextField(
+        default='',
+        help_text="Comma-separated list of ingredients used."
+    )
+    steps = models.TextField(
+        default='',
+        help_text="Step-by-step cooking instructions."
+    )
+    tag = models.CharField(
+        max_length=50,
+        default='Other',
+        help_text="Recipe category e.g. Dinner, Breakfast."
+    )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="recipes"
     )
+    created_at = models.DateTimeField(auto_now_add=True)
 
-    def str(self):
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
         return self.name
-    
-    def clean(self) -> None:
-        """Validates all business rules before saving a recipe.
-        Much like ingredients, centralizing validation logic here ensures 
-        no bad information is submitted, regardless of logic layers above 
-        models.
 
-        Raises:
-            ValidationError: If the name is blank, if prep time is at or
-            under 0 minutes, if cook time is negative, if description is
-            blank."""
+    def clean(self):
         if self.name == "":
             raise ValidationError("What exactly are you putting in?")
         if not re.match(NAME_REGEX, self.name):
             raise ValidationError("Name must contain only letters and spaces")
-
         if self.prep_time <= 0:
             raise ValidationError("Prep time can't be 0 minutes or less.")
         if self.cook_time < 0:
             raise ValidationError("Cook time can't be negative.")
-
         if self.description == "":
             raise ValidationError("There needs to be something in the description field.")
 
-    # (Force validation on every save.)
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
