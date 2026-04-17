@@ -65,7 +65,7 @@ class BulkUploadForm(forms.Form):
     def clean_file(self):
         file = self.cleaned_data.get('file')
         if file:
-            if not file.name.endswith('.csv') and file.content_type != 'text/csv':
+            if not file.name.lower().endswith('.csv'):
                 raise forms.ValidationError("Only CSV files are accepted.")
             if file.size > 2 * 1024 * 1024:
                 raise forms.ValidationError("File size must be under 2MB.")

@@ -1,4 +1,5 @@
 from django.contrib import messages
+import logging
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db import transaction
 from rest_framework.decorators import api_view
@@ -19,6 +20,7 @@ from openai import OpenAI
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 
+logger = logging.getLogger(__name__)
 
 @login_required
 def home(request):
@@ -46,8 +48,8 @@ def home(request):
         form = IngredientForm()
 
     # Query ingredients from database
-    items = Ingredient.objects.select_related('user').filter(user=request.user)
-    saved_recipes = Recipe.objects.filter(user=request.user)
+    items = Ingredient.objects.filter(user=request.user)
+    saved_recipes = Recipe.objects.select_related('user').filter(user=request.user)
     return render(request, 'home.html', {
         'form': form,
         'items': items,
@@ -132,7 +134,7 @@ def edit_ingredient(request):
         except ObjectDoesNotExist:
             messages.error(request, 'ERROR: Ingredient not found. It may have been deleted.')
         except Exception as exc:
-            print(f"[EDIT] Exception: {exc}") # Debugging Code
+            logger.error(f"[EDIT] Exception: {exc}", exc_info=True)
             messages.error(request, 'ERROR: Unexpected error trying to edit ingredient.')
 
     return redirect('home')
@@ -158,7 +160,8 @@ def delete_ingredient(request, item_id):
         Always redirects to the 'home' route. Reloads page.
     """
     if request.method == 'POST':
-        deleted_count, _ = Ingredient.objects.filter(id=item_id, user=request.user).delete()
+        with transaction.atomic():
+            deleted_count, _ = Ingredient.objects.filter(id=item_id, user=request.user).delete()
         if deleted_count > 0:
             messages.success(request, 'Ingredient successfully deleted.')
 
@@ -354,8 +357,6 @@ def csv_template_download(request):
     
     Provides the exact, expected column headers to prevent parsing errors.
     """
-    from django.http import HttpResponse
-
     response = HttpResponse(
         content_type='text/csv',
         headers={'Content-Disposition': 'attachment; filename="inventory_template.csv"'},
