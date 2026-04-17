@@ -228,6 +228,8 @@ class Recipe(models.Model):
     def clean(self):
         if self.name == "":
             raise ValidationError("What exactly are you putting in?")
+        if not re.match(NAME_REGEX, self.name):
+            raise ValidationError("Name must contain only letters and spaces")
         if self.prep_time <= 0:
             raise ValidationError("Prep time can't be 0 minutes or less.")
         if self.cook_time < 0:
