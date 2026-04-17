@@ -119,17 +119,21 @@ def edit_ingredient(request):
             return redirect('home')
 
         try:
-            with transaction.atomic():
-                ingredient = Ingredient.objects.select_for_update().get(id=ingredient_id, user=request.user)
-                form = IngredientForm(request.POST, instance=ingredient)
-                if form.is_valid():
-                    updated_item = form.save(commit=False)
+            unlocked_ingredient = Ingredient.objects.get(id=ingredient_id, user=request.user)
+            form = IngredientForm(request.POST, instance=unlocked_ingredient)
+            
+            if form.is_valid():
+                with transaction.atomic():
+                    ingredient = Ingredient.objects.select_for_update().get(id=ingredient_id, user=request.user)
+                    
+                    locked_form = IngredientForm(request.POST, instance=ingredient)
+                    updated_item = locked_form.save(commit=False)
                     updated_item.user = request.user
                     updated_item.save()
-                    messages.success(request, 'Ingredient successfully updated')
-                else:
-                    # print("[EDIT] FORM ERROR:", form.errors) # Debugging Code
-                    messages.error(request, 'ERROR: Failed to update ingredient')
+                    
+                messages.success(request, 'Ingredient successfully updated')
+            else:
+                messages.error(request, 'ERROR: Failed to update ingredient')
 
         except ObjectDoesNotExist:
             messages.error(request, 'ERROR: Ingredient not found. It may have been deleted.')
@@ -516,6 +520,10 @@ def bulk_upload_preview(request):
         if invalid_rows:
             messages.error(request, "Cannot import because selected rows contain invalid data.")
             return redirect('bulk_upload_preview')
+            
+        # Clean memory buffer immediately upon execution clearance to avoid stale sessions
+        del request.session['bulk_upload_data']
+        request.session.modified = True
 
         try:
             with transaction.atomic():
@@ -545,9 +553,6 @@ def bulk_upload_preview(request):
 
                 Ingredient.objects.bulk_create(ingredients_to_create)
 
-            # Clean memory buffer upon success
-            del request.session['bulk_upload_data']
-            request.session.modified = True
             messages.success(request, f"Successfully imported {len(ingredients_to_create)} items.")
             return redirect('home')
 
