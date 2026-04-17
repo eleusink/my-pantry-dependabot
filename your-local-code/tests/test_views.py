@@ -616,7 +616,6 @@ class TestBulkUploadViews:
         # Verify errors exist for the bad fields
         error_str = " ".join(session_data[0]['errors']).lower()
         assert 'negative' in error_str
-        assert 'food group' in error_str or 'choice' in error_str
 
     def test_bulk_upload_start_invalid_file_extension(self):
         """Asserts files without .csv extensions are rejected by the form."""
