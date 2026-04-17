@@ -366,3 +366,15 @@ def csv_template_download(request):
     writer.writerow(['name', 'quantity', 'unit_measurement', 'date_obtained', 'date_expired', 'food_group'])
 
     return response
+
+
+@login_required
+def bulk_upload_start(request):
+    """Parses uploaded CSV and stores valid/invalid rows in session for Step 2 preview."""
+    pass
+
+
+@login_required
+def bulk_upload_preview(request):
+    """Displays the session preview data and commits corrected data to the database."""
+    pass
