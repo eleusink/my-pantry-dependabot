@@ -101,7 +101,7 @@ def step_impl_7(context, quantity):
             'date_obtained': context.ingredient.date_obtained,
             'food_group': context.ingredient.food_group,
             'unit_measurement': context.ingredient.unit_measurement,
-        }
+        }, follow=True
     )
 
 
@@ -120,7 +120,7 @@ def step_impl_8(context, date):
             'date_obtained': context.ingredient.date_obtained,
             'food_group': context.ingredient.food_group,
             'unit_measurement': context.ingredient.unit_measurement,
-        }
+        }, follow=True
     )
 
 
@@ -137,7 +137,7 @@ def step_impl_9(context, name, quantity, date):
         'food_group': 'OT',  # Default
         'unit_measurement': 'A',  # Default
         'date_obtained': today,
-    })
+    }, follow=True)
 
 
 @when('I visit the inventory page')
