@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import BarcodeRequestSerializer
-from .utils import fetch_product_info, normalize_unit, ProductNotFoundError, ProductAPIError
+from .utils import fetch_product_info, normalize_unit, normalize_group, ProductNotFoundError, ProductAPIError
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from .forms import IngredientForm, CustomUserChangeForm, CustomUserCreationForm
 from django.contrib.auth.decorators import login_required
@@ -119,17 +119,21 @@ def edit_ingredient(request):
             return redirect('home')
 
         try:
-            with transaction.atomic():
-                ingredient = Ingredient.objects.select_for_update().get(id=ingredient_id, user=request.user)
-                form = IngredientForm(request.POST, instance=ingredient)
-                if form.is_valid():
-                    updated_item = form.save(commit=False)
+            unlocked_ingredient = Ingredient.objects.get(id=ingredient_id, user=request.user)
+            form = IngredientForm(request.POST, instance=unlocked_ingredient)
+            
+            if form.is_valid():
+                with transaction.atomic():
+                    ingredient = Ingredient.objects.select_for_update().get(id=ingredient_id, user=request.user)
+                    
+                    locked_form = IngredientForm(request.POST, instance=ingredient)
+                    updated_item = locked_form.save(commit=False)
                     updated_item.user = request.user
                     updated_item.save()
-                    messages.success(request, 'Ingredient successfully updated')
-                else:
-                    # print("[EDIT] FORM ERROR:", form.errors) # Debugging Code
-                    messages.error(request, 'ERROR: Failed to update ingredient')
+                    
+                messages.success(request, 'Ingredient successfully updated')
+            else:
+                messages.error(request, 'ERROR: Failed to update ingredient')
 
         except ObjectDoesNotExist:
             messages.error(request, 'ERROR: Ingredient not found. It may have been deleted.')
@@ -356,6 +360,12 @@ def csv_template_download(request):
     """Generates and returns a blank CSV template for bulk uploads.
     
     Provides the exact, expected column headers to prevent parsing errors.
+
+    Args:
+        request: The incoming HTTP GET request.
+
+    Returns:
+        HttpResponse: A flat-file payload prompting 'inventory_template.csv'.
     """
     response = HttpResponse(
         content_type='text/csv',
@@ -370,7 +380,20 @@ def csv_template_download(request):
 
 @login_required
 def bulk_upload_start(request):
-    """Parses uploaded CSV and stores valid/invalid rows in session for Step 2 preview."""
+    """Parses uploaded CSV and stores validity matrices into the user session logic.
+
+    Extracts binary payload originating from the bulk upload template form, decodes it
+    securely, bounds field mapping testing strictly via IngredientForm representations,
+    and commits the fully parsed, structurally mapped payload directly to the 
+    user's HTTP session context for frontend matrix previews.
+
+    Args:
+        request: The incoming HTTP POST request carrying the multipart attachments.
+
+    Returns:
+        HttpResponseRedirect: Directs the user gracefully to the 'bulk_upload_preview' URL if
+        successful, or re-renders the home dashboard cleanly upon structural CSV failure.
+    """
     import io
     from .forms import BulkUploadForm, IngredientForm
 
@@ -389,13 +412,6 @@ def bulk_upload_start(request):
                 return redirect('home')
 
             parsed_rows = []
-            
-            # Case-insensitive logical mappings back to backend CHOICES (units handled by normalize_unit)
-            group_map = {k.lower(): v for k, v in [
-                ('Fruit', 'FR'), ('Vegetable', 'VE'), ('Grain', 'GR'), 
-                ('Protein', 'PR'), ('Dairy', 'DA'), ('Snack', 'SN'), 
-                ('Beverage', 'BE'), ('Other', 'OT')
-            ]}
 
             for idx, row in enumerate(reader, start=1):
                 clean_row = {k.strip().lower(): (v or '').strip() for k, v in row.items() if k}
@@ -408,7 +424,7 @@ def bulk_upload_start(request):
                 group_raw = clean_row.get('food_group', '')
 
                 unit_mapped = normalize_unit(unit_raw)
-                group_mapped = group_map.get(group_raw.lower(), group_raw)
+                group_mapped = normalize_group(group_raw)
 
                 form_data = {
                     'name': name,
@@ -467,7 +483,23 @@ def bulk_upload_start(request):
 
 @login_required
 def bulk_upload_preview(request):
-    """Displays the session preview data and commits corrected data to the database."""
+    """Displays session preview layouts and commits atomic models to the database.
+
+    Intercepts the standardized payload matrix stowed dynamically inside the
+    user's session cache rendering it contextually on GET operations. On POST operations,
+    manually reconciles submitted IDs securely against the uncorrupted session buffer,
+    enforcing secondary coercion checking constraints via field-mapped IngredientForm
+    validations before wrapping all valid structures into a database atomic commit.
+
+    Args:
+        request: The HTTP request carrying either GET visualization triggers or explicit
+        POST key/identification hashes to execute against the final save context.
+
+    Returns:
+        HttpResponseRedirect: Render redirection resolving cleanly back to the frontend
+        dashboard sequentially mapping 'messages.success' objects upon clear closure, or
+        serving standard HTML on traditional HTTP requests.
+    """
     session_data = request.session.get('bulk_upload_data')
     if not session_data:
         messages.error(request, "No pending bulk upload found or the session expired.")
@@ -488,6 +520,10 @@ def bulk_upload_preview(request):
         if invalid_rows:
             messages.error(request, "Cannot import because selected rows contain invalid data.")
             return redirect('bulk_upload_preview')
+            
+        # Clean memory buffer immediately upon execution clearance to avoid stale sessions
+        del request.session['bulk_upload_data']
+        request.session.modified = True
 
         try:
             with transaction.atomic():
@@ -517,9 +553,6 @@ def bulk_upload_preview(request):
 
                 Ingredient.objects.bulk_create(ingredients_to_create)
 
-            # Clean memory buffer upon success
-            del request.session['bulk_upload_data']
-            request.session.modified = True
             messages.success(request, f"Successfully imported {len(ingredients_to_create)} items.")
             return redirect('home')
 

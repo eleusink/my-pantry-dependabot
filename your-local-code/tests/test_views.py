@@ -550,3 +550,150 @@ class TestAboutView:
         user = make_user(username='aboutuser')
         self.client.force_login(user)
         assert self.client.get(reverse('about')).status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Bulk Upload Tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestBulkUploadViews:
+    """Tests for the bulk CSV upload flow (start and preview logic)."""
+
+    @pytest.fixture(autouse=True)
+    def setup_bulk_test(self, db):
+        self.client = Client()
+        self.user = make_user(username='bulkuser', email='bulk@example.com')
+        self.client.force_login(self.user)
+        self.today = timezone.now().date()
+        self.tomorrow = self.today + datetime.timedelta(days=1)
+
+    @pytest.fixture
+    def generate_csv_file(self):
+        def _generate(content, filename="test.csv"):
+            from django.core.files.uploadedfile import SimpleUploadedFile
+            return SimpleUploadedFile(filename, content.encode('utf-8-sig'), content_type="text/csv")
+        return _generate
+
+    def test_csv_template_download(self):
+        """Asserts the template endpoint returns a correct CSV attachment."""
+        response = self.client.get(reverse('csv_template_download'))
+        assert response.status_code == 200
+        assert response['Content-Type'] == 'text/csv'
+        assert 'attachment; filename="inventory_template.csv"' in response['Content-Disposition']
+        assert b"name,quantity,unit_measurement,date_obtained,date_expired,food_group" in response.content
+
+    def test_bulk_upload_start_valid_csv(self, generate_csv_file):
+        """Asserts well-formed CSV is parsed and cleanly stored in the session."""
+        csv_content = (
+            "name,quantity,unit_measurement,date_obtained,date_expired,food_group\n"
+            f"Apple,5,count,{self.today},{self.tomorrow},Fruit\n"
+        )
+        csv_file = generate_csv_file(csv_content)
+        
+        response = self.client.post(reverse('bulk_upload_start'), {'file': csv_file})
+        assert response.status_code == 302
+        assert response.url == reverse('bulk_upload_preview')
+        
+        session_data = self.client.session.get('bulk_upload_data')
+        assert session_data is not None
+        assert len(session_data) == 1
+        assert session_data[0]['name'] == 'Apple'
+        assert session_data[0]['valid'] is True
+
+    def test_bulk_upload_start_invalid_data(self, generate_csv_file):
+        """Asserts row with model validation errors is caught during parsing."""
+        csv_content = (
+            "name,quantity,unit_measurement,date_obtained,date_expired,food_group\n"
+            f"BadApple,-5,count,{self.today},{self.tomorrow},Ice Cream\n"
+        )
+        csv_file = generate_csv_file(csv_content)
+        
+        self.client.post(reverse('bulk_upload_start'), {'file': csv_file})
+        session_data = self.client.session.get('bulk_upload_data')
+        
+        assert session_data is not None
+        assert len(session_data) == 1
+        assert session_data[0]['name'] == 'BadApple'
+        assert session_data[0]['valid'] is False
+        
+        # Verify errors exist for the bad fields
+        error_str = " ".join(session_data[0]['errors']).lower()
+        assert 'negative' in error_str
+
+    def test_bulk_upload_start_invalid_file_extension(self, generate_csv_file):
+        """Asserts files without .csv extensions are rejected by the form."""
+        txt_content = "name,quantity\ntest,1\n"
+        txt_file = generate_csv_file(txt_content)
+        txt_file.name = "test.txt" # override the name to trigger validation exception
+        
+        response = self.client.post(reverse('bulk_upload_start'), {'file': txt_file}, follow=True)
+        messages = list(response.context['messages'])
+        assert any('Only CSV files are accepted' in str(m) for m in messages)
+
+    def test_bulk_upload_preview_get(self):
+        """Asserts preview renders properly when session data exists."""
+        session = self.client.session
+        session['bulk_upload_data'] = [{'id': 1, 'name': 'Milk', 'valid': True}]
+        session.save()
+
+        response = self.client.get(reverse('bulk_upload_preview'))
+        assert response.status_code == 200
+        assert b'Milk' in response.content
+
+    def test_bulk_upload_preview_get_empty_session(self):
+        """Asserts accessing preview without session data redirects home."""
+        response = self.client.get(reverse('bulk_upload_preview'))
+        assert response.status_code == 302
+        assert response.url == reverse('home')
+
+    def test_bulk_upload_preview_post_commits_valid_rows(self):
+        """Asserts POST to preview commits rows matching submitted IDs atomically."""
+        session = self.client.session
+        session['bulk_upload_data'] = [
+            {
+                'id': 1, 'name': 'GoodApple', 'quantity': '5', 'unit_measurement': 'A',
+                'date_obtained': str(self.today), 'date_expired': str(self.tomorrow),
+                'food_group': 'FR', 'valid': True
+            },
+            {
+                'id': 2, 'name': 'SkippedPeach', 'quantity': '2', 'unit_measurement': 'A',
+                'date_obtained': str(self.today), 'date_expired': str(self.tomorrow),
+                'food_group': 'FR', 'valid': True
+            }
+        ]
+        session.save()
+
+        before_count = Ingredient.objects.count()
+        
+        # Post ONLY id 1 (simulating skipping id 2)
+        response = self.client.post(reverse('bulk_upload_preview'), {'row_id_1': '1'})
+        
+        assert response.status_code == 302
+        assert response.url == reverse('home')
+        assert Ingredient.objects.count() == before_count + 1
+        assert Ingredient.objects.filter(name='GoodApple', user=self.user).exists()
+        assert not Ingredient.objects.filter(name='SkippedPeach', user=self.user).exists()
+        
+        # Session should be wiped locally
+        assert 'bulk_upload_data' not in self.client.session
+
+    def test_bulk_upload_preview_post_blocks_invalid_rows(self):
+        """Asserts backend strictly blocks committing rows flagged as invalid in session."""
+        session = self.client.session
+        session['bulk_upload_data'] = [
+            {
+                'id': 1, 'name': 'BadApple', 'quantity': '-5', 'unit_measurement': 'A',
+                'date_obtained': str(self.today), 'date_expired': str(self.tomorrow),
+                'food_group': 'FR', 'valid': False, 'errors': ['Quantity must be positive']
+            }
+        ]
+        session.save()
+
+        before_count = Ingredient.objects.count()
+        response = self.client.post(reverse('bulk_upload_preview'), {'row_id_1': '1'}, follow=True)
+        
+        # Should block and redirect back to preview
+        assert Ingredient.objects.count() == before_count
+        messages = list(response.context['messages'])
+        assert any('contain invalid data' in str(m) for m in messages)
