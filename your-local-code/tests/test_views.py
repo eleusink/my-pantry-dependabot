@@ -560,16 +560,20 @@ class TestAboutView:
 class TestBulkUploadViews:
     """Tests for the bulk CSV upload flow (start and preview logic)."""
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup_bulk_test(self, db):
         self.client = Client()
         self.user = make_user(username='bulkuser', email='bulk@example.com')
         self.client.force_login(self.user)
         self.today = timezone.now().date()
         self.tomorrow = self.today + datetime.timedelta(days=1)
 
-    def _generate_csv_file(self, content):
-        from django.core.files.uploadedfile import SimpleUploadedFile
-        return SimpleUploadedFile("test.csv", content.encode('utf-8-sig'), content_type="text/csv")
+    @pytest.fixture
+    def generate_csv_file(self):
+        def _generate(content, filename="test.csv"):
+            from django.core.files.uploadedfile import SimpleUploadedFile
+            return SimpleUploadedFile(filename, content.encode('utf-8-sig'), content_type="text/csv")
+        return _generate
 
     def test_csv_template_download(self):
         """Asserts the template endpoint returns a correct CSV attachment."""
@@ -579,13 +583,13 @@ class TestBulkUploadViews:
         assert 'attachment; filename="inventory_template.csv"' in response['Content-Disposition']
         assert b"name,quantity,unit_measurement,date_obtained,date_expired,food_group" in response.content
 
-    def test_bulk_upload_start_valid_csv(self):
+    def test_bulk_upload_start_valid_csv(self, generate_csv_file):
         """Asserts well-formed CSV is parsed and cleanly stored in the session."""
         csv_content = (
             "name,quantity,unit_measurement,date_obtained,date_expired,food_group\n"
             f"Apple,5,count,{self.today},{self.tomorrow},Fruit\n"
         )
-        csv_file = self._generate_csv_file(csv_content)
+        csv_file = generate_csv_file(csv_content)
         
         response = self.client.post(reverse('bulk_upload_start'), {'file': csv_file})
         assert response.status_code == 302
@@ -597,13 +601,13 @@ class TestBulkUploadViews:
         assert session_data[0]['name'] == 'Apple'
         assert session_data[0]['valid'] is True
 
-    def test_bulk_upload_start_invalid_data(self):
+    def test_bulk_upload_start_invalid_data(self, generate_csv_file):
         """Asserts row with model validation errors is caught during parsing."""
         csv_content = (
             "name,quantity,unit_measurement,date_obtained,date_expired,food_group\n"
             f"BadApple,-5,count,{self.today},{self.tomorrow},Ice Cream\n"
         )
-        csv_file = self._generate_csv_file(csv_content)
+        csv_file = generate_csv_file(csv_content)
         
         self.client.post(reverse('bulk_upload_start'), {'file': csv_file})
         session_data = self.client.session.get('bulk_upload_data')
@@ -617,10 +621,10 @@ class TestBulkUploadViews:
         error_str = " ".join(session_data[0]['errors']).lower()
         assert 'negative' in error_str
 
-    def test_bulk_upload_start_invalid_file_extension(self):
+    def test_bulk_upload_start_invalid_file_extension(self, generate_csv_file):
         """Asserts files without .csv extensions are rejected by the form."""
         txt_content = "name,quantity\ntest,1\n"
-        txt_file = self._generate_csv_file(txt_content)
+        txt_file = generate_csv_file(txt_content)
         txt_file.name = "test.txt" # override the name to trigger validation exception
         
         response = self.client.post(reverse('bulk_upload_start'), {'file': txt_file}, follow=True)
