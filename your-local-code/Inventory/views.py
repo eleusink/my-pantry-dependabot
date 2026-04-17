@@ -14,6 +14,7 @@ from django.contrib.auth.forms import UserCreationForm
 from .models import Ingredient
 import json
 import os
+import csv
 from openai import OpenAI
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
@@ -342,3 +343,22 @@ def save_recipe(request):
         return JsonResponse({'success': True, 'id': recipe.id})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+def csv_template_download(request):
+    """Generates and returns a blank CSV template for bulk uploads.
+    
+    Provides the exact, expected column headers to prevent parsing errors.
+    """
+    from django.http import HttpResponse
+
+    response = HttpResponse(
+        content_type='text/csv',
+        headers={'Content-Disposition': 'attachment; filename="inventory_template.csv"'},
+    )
+
+    writer = csv.writer(response)
+    writer.writerow(['Name', 'Quantity', 'Unit', 'Date Obtained', 'Expiration Date', 'Food Group'])
+
+    return response

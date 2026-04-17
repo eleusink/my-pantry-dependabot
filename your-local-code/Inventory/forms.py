@@ -53,3 +53,11 @@ class CustomUserChangeForm(UserChangeForm):
 
         model = User
         fields = ['username', 'first_name', 'last_name', 'email']
+
+
+class BulkUploadForm(forms.Form):
+    """Form to handle CSV file uploads for bulk importing ingredients."""
+    file = forms.FileField(
+        label="Select a CSV File",
+        help_text="Please upload a valid CSV file using the template format."
+    )
