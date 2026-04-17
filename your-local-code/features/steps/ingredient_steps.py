@@ -173,6 +173,9 @@ def step_impl_14(context, date):
 
 @then('the ingredient "{name}" should appear in my inventory')
 def step_impl_15(context, name):
+    html = context.response.content.decode('utf-8')
+    assert f'data-name="{name}"' in html, f"UI Failure: '{name}' not found properly injected into the DOM layout."
+    
     try:
         # Added user filter to be safe
         context.ingredient = Ingredient.objects.get(name=name, user=context.user)
@@ -184,6 +187,9 @@ def step_impl_15(context, name):
 def step_impl_16(context):
     # Check that ingredient was NOT created
     if hasattr(context, 'ingredient_name'):
+        html = context.response.content.decode('utf-8')
+        assert f'data-name="{context.ingredient_name}"' not in html, f"UI Failure: '{context.ingredient_name}' rendered on the UI despite error."
+        
         ingredient_exists = Ingredient.objects.filter(name=context.ingredient_name, user=context.user).exists()
         assert not ingredient_exists, \
             f"Ingredient '{context.ingredient_name}' should not have been added"
@@ -199,12 +205,19 @@ def step_impl_17(context):
 
 @then('I should see "No ingredients found" or an empty list')
 def step_impl_18(context):
+    html = context.response.content.decode('utf-8')
+    assert 'data-ingredient-id=' not in html, "UI Failure: Found rendered items in the DOM when it should be empty."
+    
     # Filter by user context
     assert Ingredient.objects.filter(user=context.user).count() == 0
 
 
 @then('I should have {count:d} ingredients in my inventory')
 def step_impl_19(context, count):
+    html = context.response.content.decode('utf-8')
+    ui_count = html.count('data-ingredient-id="')  # Standard DOM item injection mapping loop count
+    assert ui_count == count, f"UI Failure: Expected {count} items in DOM layout, but counted {ui_count}."
+    
     # Filter by user context
     actual_count = Ingredient.objects.filter(user=context.user).count()
     assert actual_count == count, \

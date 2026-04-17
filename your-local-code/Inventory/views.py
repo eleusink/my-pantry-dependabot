@@ -51,6 +51,7 @@ def home(request):
     return render(request, 'home.html', {
         'form': form,
         'items': items,
+        'groups': [group[1] for group in Ingredient.FoodGroups.choices],
         'saved_recipes': saved_recipes,
     })
 def signup(request):
