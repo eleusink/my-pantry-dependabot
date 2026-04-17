@@ -56,13 +56,28 @@ class CustomUserChangeForm(UserChangeForm):
 
 
 class BulkUploadForm(forms.Form):
-    """Form to handle CSV file uploads for bulk importing ingredients."""
+    """Handles the validation and processing of bulk inventory CSV uploads.
+
+    Validates that the provided file strictly matches a comma-separated values 
+    formatting and does not manually exceed memory buffer allocation limit rules.
+
+    Attributes:
+        file (FileField): The uploaded payload file containing comma separated data.
+    """
     file = forms.FileField(
         label="Select a CSV File",
         help_text="Please upload a valid CSV file using the template format."
     )
 
     def clean_file(self):
+        """Validates the uploaded file extension and size.
+
+        Returns:
+            The raw file object if validation passes.
+
+        Raises:
+            ValidationError: If the file lacks a .csv extension or exceeds 2MB.
+        """
         file = self.cleaned_data.get('file')
         if file:
             if not file.name.lower().endswith('.csv'):
