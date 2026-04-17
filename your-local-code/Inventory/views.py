@@ -496,7 +496,15 @@ def bulk_upload_preview(request):
 
                 for row in rows_to_save:
                     # Trust boundary defense: force coercion of strings to Dates/Decimals (I don't trust Python's type guessing.)
-                    final_form = IngredientForm(data=row)
+                    form_data = {
+                        'name': row.get('name'),
+                        'quantity': row.get('quantity'),
+                        'unit_measurement': row.get('unit_measurement'),
+                        'date_obtained': row.get('date_obtained'),
+                        'date_expired': row.get('date_expired'),
+                        'food_group': row.get('food_group'),
+                    }
+                    final_form = IngredientForm(data=form_data)
                     if not final_form.is_valid():
                         raise ValidationError(f"Invalid or tampered data: {final_form.errors}")
                     
