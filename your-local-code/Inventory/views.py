@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import BarcodeRequestSerializer
 from .utils import fetch_product_info, normalize_unit, ProductNotFoundError, ProductAPIError
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from .forms import IngredientForm, CustomUserChangeForm, CustomUserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
@@ -371,7 +371,98 @@ def csv_template_download(request):
 @login_required
 def bulk_upload_start(request):
     """Parses uploaded CSV and stores valid/invalid rows in session for Step 2 preview."""
-    pass
+    import io
+    from .forms import BulkUploadForm, IngredientForm
+
+    if request.method == 'POST':
+        form = BulkUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            csv_file = form.cleaned_data['file']
+            
+            try:
+                # Decode the binary file safely handling BOM and standard UTF-8
+                decoded_file = csv_file.read().decode('utf-8-sig')
+                reader = csv.DictReader(io.StringIO(decoded_file))
+            except Exception as e:
+                logger.error(f"[CSV Parsing] Error decoding CSV: {e}")
+                messages.error(request, "Error reading CSV file. Ensure it is valid text/csv format.")
+                return redirect('home')
+
+            parsed_rows = []
+            
+            # Case-insensitive logical mappings back to backend CHOICES (units handled by normalize_unit)
+            group_map = {k.lower(): v for k, v in [
+                ('Fruit', 'FR'), ('Vegetable', 'VE'), ('Grain', 'GR'), 
+                ('Protein', 'PR'), ('Dairy', 'DA'), ('Snack', 'SN'), 
+                ('Beverage', 'BE'), ('Other', 'OT')
+            ]}
+
+            for idx, row in enumerate(reader, start=1):
+                clean_row = {k.strip().lower(): v.strip() for k, v in row.items() if k}
+                
+                name = clean_row.get('name', '')
+                quantity = clean_row.get('quantity', '')
+                unit_raw = clean_row.get('unit_measurement', '')
+                date_obtained = clean_row.get('date_obtained', '')
+                date_expired = clean_row.get('date_expired', '')
+                group_raw = clean_row.get('food_group', '')
+
+                unit_mapped = normalize_unit(unit_raw)
+                group_mapped = group_map.get(group_raw.lower(), group_raw)
+
+                form_data = {
+                    'name': name,
+                    'quantity': quantity,
+                    'unit_measurement': unit_mapped,
+                    'date_obtained': date_obtained,
+                    'date_expired': date_expired,
+                    'food_group': group_mapped,
+                }
+                
+                # Check formatting/data logic via Django Form
+                ingredient_form = IngredientForm(data=form_data)
+                errors = []
+
+                if not ingredient_form.is_valid():
+                    for field, field_errors in ingredient_form.errors.items():
+                        errors.extend([f"{field.title()}: {e}" for e in field_errors])
+                else:
+                    temp_instance = ingredient_form.save(commit=False)
+                    temp_instance.user = request.user
+                    try:
+                        # Re-run Fat-model validations explicitly
+                        temp_instance.clean()
+                    except ValidationError as e:
+                        if hasattr(e, 'message_dict'):
+                            for field, msgs in e.message_dict.items():
+                                errors.extend(msgs)
+                        else:
+                            errors.extend(e.messages)
+
+                parsed_rows.append({
+                    'id': idx, # Iterated Temporary identifier
+                    'name': name,
+                    'quantity': quantity,
+                    'unit_measurement': unit_mapped,
+                    'unit_raw': unit_raw,
+                    'date_obtained': date_obtained,
+                    'date_expired': date_expired,
+                    'food_group': group_mapped,
+                    'food_group_raw': group_raw,
+                    'errors': errors,
+                    'valid': len(errors) == 0
+                })
+
+            # Pass dict list payload directly to Django Session Store
+            request.session['bulk_upload_data'] = parsed_rows
+            return redirect('bulk_upload_preview')
+            
+        else:
+            for key, err in form.errors.items():
+                messages.error(request, f"{err}")
+            return redirect('home')
+    else:
+        return redirect('home')
 
 
 @login_required
