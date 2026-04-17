@@ -468,4 +468,64 @@ def bulk_upload_start(request):
 @login_required
 def bulk_upload_preview(request):
     """Displays the session preview data and commits corrected data to the database."""
-    pass
+    session_data = request.session.get('bulk_upload_data')
+    if not session_data:
+        messages.error(request, "No pending bulk upload found or the session expired.")
+        return redirect('home')
+
+    if request.method == 'POST':
+        submitted_ids = {
+            int(val) for key, val in request.POST.items() if key.startswith('row_id_') and val.isdigit()
+        }
+
+        if not submitted_ids:
+            messages.error(request, "No items selected for import.")
+            return redirect('bulk_upload_preview')
+
+        rows_to_save = [row for row in session_data if row['id'] in submitted_ids]
+        
+        invalid_rows = [r for r in rows_to_save if not r.get('valid')]
+        if invalid_rows:
+            messages.error(request, "Cannot import because selected rows contain invalid data.")
+            return redirect('bulk_upload_preview')
+
+        try:
+            with transaction.atomic():
+                from .forms import IngredientForm
+                ingredients_to_create = []
+
+                for row in rows_to_save:
+                    # Trust boundary defense: force coercion of strings to Dates/Decimals (I don't trust Python's type guessing.)
+                    form_data = {
+                        'name': row.get('name'),
+                        'quantity': row.get('quantity'),
+                        'unit_measurement': row.get('unit_measurement'),
+                        'date_obtained': row.get('date_obtained'),
+                        'date_expired': row.get('date_expired'),
+                        'food_group': row.get('food_group'),
+                    }
+                    final_form = IngredientForm(data=form_data)
+                    if not final_form.is_valid():
+                        raise ValidationError(f"Invalid or tampered data: {final_form.errors}")
+                    
+                    instance = final_form.save(commit=False)
+                    instance.user = request.user
+                    
+                    # Execute structural constraints as bulk_create skips .clean() and .save()
+                    instance.full_clean()
+                    ingredients_to_create.append(instance)
+
+                Ingredient.objects.bulk_create(ingredients_to_create)
+
+            # Clean memory buffer upon success
+            del request.session['bulk_upload_data']
+            request.session.modified = True
+            messages.success(request, f"Successfully imported {len(ingredients_to_create)} items.")
+            return redirect('home')
+
+        except Exception as exc:
+            logger.error(f"[Bulk Upload] Transaction Failed: {exc}", exc_info=True)
+            messages.error(request, "A database error occurred during import. Transaction aborted safely.")
+            return redirect('bulk_upload_preview')
+
+    return render(request, 'bulk_upload_preview.html', {'rows': session_data})
