@@ -12,7 +12,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils import timezone
  
-from Inventory.models import Ingredient
+from Inventory.models import Ingredient, Recipe, Tag
  
 User = get_user_model()
  
@@ -50,6 +50,17 @@ def base_ingredient_data(base_user):
         'date_expired': today + datetime.timedelta(days=30),
         'food_group': 'DA',
         'unit_measurement': 'L',
+        'user': base_user,
+    }
+
+@pytest.fixture
+def base_recipe_data(base_user):
+    """Returns valid data for a Recipe instance."""
+    return {
+        'name': 'Recipe Name',
+        'prep_time': 15,
+        'cook_time': 30,
+        'description': 'A description of a meal.',
         'user': base_user,
     }
  
@@ -192,3 +203,66 @@ def test_minutes_remaining(saved_ingredient, days_offset, expected_minutes):
  
     assert saved_ingredient.minutes_remaining == expected_minutes
     assert saved_ingredient.quantity == Decimal('1.00')
+
+
+# ========================== RECIPES TESTING ================================
+
+# ---------------------------------------------------------------------------
+# clean (all fields)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("field, invalid_value", [
+    ('name', ''),                          # Blank name
+    ('name', 'Recipe @ 123'),              # Fails NAME_REGEX (special chars)
+    ('name', 'A' * 101),                   # Recipe name over 100 characters
+    ('prep_time', 0),                      # Prep time <= 0
+    ('prep_time', -5),                     # Negative prep time
+    ('cook_time', -1),                     # Negative cook time
+    ('description', ''),                   # Blank description
+])
+
+def test_recipe_validation_errors(base_recipe_data, field, invalid_value):
+    """Assert that validation errors for each field are being raised as intended."""
+    base_recipe_data[field] = invalid_value
+    recipe = Recipe(**base_recipe_data)
+    with pytest.raises(ValidationError):
+        recipe.full_clean() # SHOULD raise
+
+def test_valid_recipe(base_recipe_data):
+    """Assert that a recipe with the correct information can be saved as normal."""
+    recipe = Recipe(**base_recipe_data)
+    recipe.full_clean() # Shouldn't raise
+
+# ---------------------------------------------------------------------------
+# Tag Model Tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_tag_str_representation():
+    """Asserts that get_name_display is used in __str__."""
+    tag = Tag.objects.create(name=Tag.AllowedTags.GLUTEN_FREE)
+    assert str(tag) == 'Gluten-Free'
+
+@pytest.mark.django_db
+def test_invalid_tag_choice():
+    """Asserts that a tag name outside of AllowedTags raises a ValidationError."""
+    with pytest.raises(ValidationError):
+        tag = Tag(name="Not A Real Tag")
+        tag.full_clean()
+
+# ---------------------------------------------------------------------------
+# Tag Recipe Relationship Tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_tag_recipe_relationship(base_recipe_data):
+    """Asserts that tags can be associated with recipes."""
+    recipe = Recipe.objects.create(**base_recipe_data)
+
+    vegan_tag = Tag.objects.create(name=Tag.AllowedTags.VEGAN)
+    keto_tag = Tag.objects.create(name=Tag.AllowedTags.KETO)
+
+    recipe.tags.add(vegan_tag, keto_tag)
+
+    assert recipe.tags.count() == 2
+    assert vegan_tag in recipe.tags.all()
