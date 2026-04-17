@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Preview Bulk Import{% endblock %}
+
+{% block content %}
+<main class="dashboard">
+  <div class="container" style="max-width: 1200px;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h1 class="page-title">Preview Bulk Import</h1>
+      <a href="{% url 'home' %}" class="toggle-btn" style="background: transparent; color: #d9534f; border: 1px solid #d9534f; text-decoration: none;">Cancel Import</a>
+    </div>
+
+    <section class="panel-wide">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 style="font-size: 1.25rem;">Review Parsed Items</h2>
+        </div>
+        <div class="panel-body" style="overflow-x: auto; padding: 20px;">
+          
+          {% if rows %}
+            <form method="POST" id="confirm-import-form" action="{% url 'bulk_upload_preview' %}">
+              {% csrf_token %}
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                  <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+                    <th style="padding: 10px;">Status</th>
+                    <th style="padding: 10px;">Name</th>
+                    <th style="padding: 10px;">Food Group</th>
+                    <th style="padding: 10px;">Quantity</th>
+                    <th style="padding: 10px;">Unit</th>
+                    <th style="padding: 10px;">Data Obtained</th>
+                    <th style="padding: 10px;">Expiration Date</th>
+                    <th style="padding: 10px; text-align: center;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in rows %}
+                  <tr id="row-{{ row.id }}" class="upload-row {% if not row.valid %}invalid-row{% endif %}" style="border-bottom: 1px solid #eee; {% if not row.valid %}background-color: #fff3f3;{% endif %}">
+                    
+                    <td style="padding: 10px;">
+                      {% if row.valid %}
+                        <span style="color: green; font-weight: bold;"><i class="fa fa-check-circle"></i> Ready</span>
+                      {% else %}
+                        <span style="color: red; font-weight: bold; cursor: help;" title="{{ row.errors|join:'\n' }}">
+                          <i class="fa fa-exclamation-triangle"></i> Error
+                        </span>
+                      {% endif %}
+                      <input type="hidden" name="row_id_{{ row.id }}" value="{{ row.id }}">
+                    </td>
+
+                    <!-- Inline editing was not practical just rendering the text and letting users Delete/Skip the row if it's broken -->
+                    <td style="padding: 10px; font-weight: 500;">{{ row.name }}</td>
+                    <td style="padding: 10px;">{{ row.food_group_raw|default:"-" }}</td>
+                    <td style="padding: 10px;">{{ row.quantity }}</td>
+                    <td style="padding: 10px;">{{ row.unit_raw|default:"-" }}</td>
+                    <td style="padding: 10px;">{{ row.date_obtained }}</td>
+                    <td style="padding: 10px;">{{ row.date_expired }}</td>
+                    
+                    <td style="padding: 10px; text-align: center;">
+                      <button type="button" onclick="removeRow('{{ row.id }}')" style="background: none; border: none; color: #999; cursor: pointer; font-size: 1.1em;" title="Skip this item">
+                        <i class="fa fa-trash"></i>
+                      </button>
+                    </td>
+
+                  </tr>
+                  
+                  {% if not row.valid %}
+                  <tr id="error-row-{{ row.id }}" style="background-color: #fffaf0; border-bottom: 2px solid #ffd8a8;">
+                    <td colspan="8" style="padding: 8px 10px 15px 40px; color: #d9534f; font-size: 0.9em;">
+                      <ul style="margin: 0; padding-left: 20px;">
+                        {% for err in row.errors %}
+                          <li>{{ err }}</li>
+                        {% endfor %}
+                      </ul>
+                    </td>
+                  </tr>
+                  {% endif %}
+
+                  {% endfor %}
+                </tbody>
+              </table>
+
+              <div style="display: flex; justify-content: flex-end; align-items: center; gap: 15px;">
+                <p style="margin: 0; color: #666; font-size: 0.9em;">Any remaining listed items will be added to your pantry.</p>
+                <button type="submit" id="confirm-btn" style="padding: 10px 20px; font-size: 1.1em; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                  Confirm Import
+                </button>
+              </div>
+
+            </form>
+          {% else %}
+            <p>No data found.</p>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+  function removeRow(rowId) {
+    const mainRow = document.getElementById('row-' + rowId);
+    if (mainRow) mainRow.remove();
+
+    const errorRow = document.getElementById('error-row-' + rowId);
+    if (errorRow) errorRow.remove();
+
+    // Check if any rows remain
+    const remainingRows = document.querySelectorAll('.upload-row');
+    if (remainingRows.length === 0) {
+      document.getElementById('confirm-btn').disabled = true;
+      document.getElementById('confirm-btn').style.backgroundColor = '#ccc';
+      document.getElementById('confirm-btn').style.cursor = 'not-allowed';
+    }
+  }
+</script>
+{% endblock %}

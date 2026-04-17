@@ -468,4 +468,13 @@ def bulk_upload_start(request):
 @login_required
 def bulk_upload_preview(request):
     """Displays the session preview data and commits corrected data to the database."""
-    pass
+    session_data = request.session.get('bulk_upload_data')
+    if not session_data:
+        messages.error(request, "No pending bulk upload found or the session expired.")
+        return redirect('home')
+
+    if request.method == 'POST':
+        # Task 5 Logic (Actual database commits) goes here later.
+        pass
+
+    return render(request, 'bulk_upload_preview.html', {'rows': session_data})
