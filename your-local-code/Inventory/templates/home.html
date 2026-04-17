@@ -89,34 +89,44 @@
 
 
 		      <ul id="ingredient-list" class="ingredient-list">
-			      {% for item in items %}
-			      <li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.get_food_group_display }}" data-unit-measurement="{{ item.unit_measurement }}" data-quantity="{{ item.quantity }}" data-expiration="{{ item.date_expired|date:'Y-m-d' }}" class="{% if item.minutes_remaining <= 4320 %}expiring{% endif %}">
-				      <div class="ingredient-info">
-					      <span class="ingredient-name ingredient-label">
-							{% if item.minutes_remaining <= 0 %}
-								<i class="fa fa-calendar-times expired-icon" title="Expired"></i> 
-							{% elif item.minutes_remaining <= 4320 %}
-								<i class="fa fa-exclamation-triangle expires-soon-icon" title="Expiring Soon"></i>
-							{% endif %}
-							{{ item.name }}
-						  </span><br>
-					      Food Group:  <span class="ingredient-group">{{ item.get_food_group_display }}</span><br>
-					      Quantity: <span class="ingredient-amount">{{ item.quantity }}</span> <span class="ingredient-unit">{{ item.get_unit_measurement_display }}</span><br>
-					      Date Obtained: <span class="ingredient-obtained">{{ item.date_obtained }}</span><br>
-					      Expiration Date: <span class="ingredient-expiration">{{ item.date_expired }}</span>
-				      </div>
-
-				      <div class="item-actions">
-					      <button type="button" onclick="editIngredient(this)">Edit</button>
-						  <form id="delete-form-{{ item.id }}" method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
-							{% csrf_token %}
-							<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
-								Delete
-							</button>
-						</form>
-				      </div>
-			      </li>
-			      {% endfor %}
+				{% for group in groups %}
+					<button class="group-label accordian">
+						{{ group }}
+						<i class="fas fa-caret-down icon"></i>
+					</button>
+					<div class="accordian-panel">
+						{% for item in items %}
+						{% if item.get_food_group_display == group %}
+						<li data-ingredient-id="{{ item.id }}" 
+							data-name="{{ item.name }}"
+							data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
+							data-food-group="{{ item.get_food_group_display }}" 
+							data-unit-measurement="{{ item.unit_measurement }}" 
+							data-quantity="{{ item.quantity }}" 
+							data-expiration="{{ item.date_expired|date:'Y-m-d' }}" 
+						class="
+							{% if item.minutes_remaining <= 0 %}expired-symbol expiring-background
+							{% elif item.minutes_remaining <= 4320 %}expires-soon-symbol expiring-background
+							{% else %}normal-symbol normal-background{% endif %}
+						">
+							<!-- class="{% if item.minutes_remaining <= 4320 %}expiring{% else %}normal-item{% endif %}"> -->
+							<span class="ingredient-info">
+								<span class="ingredient-name">{{ item }}</span>
+							</span>
+							<div class="item-actions">
+								<button type="button" onclick="editIngredient(this)">Edit</button>
+								<form id="delete-form-{{ item.id }}" method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+									{% csrf_token %}
+									<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
+										Delete
+									</button>
+								</form>
+							</div>
+						</li>
+						{% endif %}
+						{% endfor %}
+					</div>
+				{% endfor %}
 		      </ul>
 	      </div>
       </div>
@@ -173,7 +183,14 @@
 			<ul id="expired-list" class="expired-list">
 				{% for item in items %}
 					{% if item.minutes_remaining <= 0 %}
-					<li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.food_group }}" data-unit-measurement="{{ item.unit_measurement }}" data-quantity="{{ item.quantity }}" data-expiration="{{ item.date_expired|date:'Y-m-d' }}">
+					<li data-ingredient-id="{{ item.id }}" 
+						data-name="{{ item.name }}"
+						data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
+						data-food-group="{{ item.food_group }}" 
+						data-unit-measurement="{{ item.unit_measurement }}" 
+						data-quantity="{{ item.quantity }}" 
+						data-expiration="{{ item.date_expired|date:'Y-m-d' }}"
+					>
 						<div class="expired-info">
 							<span class="ingredient-name ingredient-label">{{ item.name }}</span>
 							<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
@@ -182,7 +199,9 @@
 							<button type="button" onclick="editIngredient(this)">Edit</button>
 							<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
 								{% csrf_token %}
-								<button type="submit">Delete</button>
+								<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
+									Delete
+								</button>
 							</form>
 				      	</div>
 					</li>
@@ -194,7 +213,14 @@
 			<ul id="expiring-soon-list" class="expiring-soon-list">
 				{% for item in items %}
 					{% if item.minutes_remaining <= 4320 and item.minutes_remaining > 0 %}
-					<li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.get_food_group_display }}" data-unit-measurement="{{ item.unit_measurement }}" data-quantity="{{ item.quantity }}" data-expiration="{{ item.date_expired|date:'Y-m-d' }}">
+					<li data-ingredient-id="{{ item.id }}" 
+						data-name="{{ item.name }}"
+						data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
+						data-food-group="{{ item.food_group }}" 
+						data-unit-measurement="{{ item.unit_measurement }}" 
+						data-quantity="{{ item.quantity }}" 
+						data-expiration="{{ item.date_expired|date:'Y-m-d' }}"
+					>
 						<div class="expiring-info">
 							<span class="ingredient-name ingredient-label">{{ item.name }}</span>
 							<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
@@ -203,7 +229,9 @@
 					      	<button type="button" onclick="editIngredient(this)">Edit</button>
 							<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
 								{% csrf_token %}
-								<button type="submit">Delete</button>
+								<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
+									Delete
+								</button>
 							</form>
 				      	</div>
 					</li>
@@ -375,30 +403,30 @@
 		  return;
 		}
 
-	  const name = document.getElementById('ingredient-name').value.trim();
-	  const foodGroup = document.getElementById('ingredient-food-group').value;
-	  const amount = document.getElementById('ingredient-amount').value;
-	  const unit = document.getElementById('ingredient-unit').value;
-	  const expiration = document.getElementById('ingredient-expiration').value;
-	  if (!name || !foodGroup || !amount || !unit || !expiration) return;
+		const name = document.getElementById('ingredient-name').value.trim();
+		const foodGroup = document.getElementById('ingredient-food-group').value;
+		const amount = document.getElementById('ingredient-amount').value;
+		const unit = document.getElementById('ingredient-unit').value;
+		const expiration = document.getElementById('ingredient-expiration').value;
+		if (!name || !foodGroup || !amount || !unit || !expiration) return;
 
-	  const list = document.getElementById('ingredient-list');
-	  const li = document.createElement('li');
+		const list = document.getElementById('ingredient-list');
+		const li = document.createElement('li');
 
-	  li.innerHTML = `
-	  <div class="ingredient-info">
-		<span class="ingredient-name">${name}</span><br>
-		Food Group: <span class="ingredient-group">${foodGroup}</span><br>
-		Quantity: <span class="ingredient-amount">${amount}</span> <span class="ingredient-unit">${unit}</span><br>
-	  Expiration Date: <span class="ingredient-expiration">${expiration}</span>
-	  </div>
-	  <div class="item-actions">
-	    <button type="button" onclick="editIngredient(this)">Edit</button>
-	  </div>
-	  `;
+		li.innerHTML = `
+			<div class="ingredient-info">
+				<span class="ingredient-name">${name}</span><br>
+				Food Group: <span class="ingredient-group">${foodGroup}</span><br>
+				Quantity: <span class="ingredient-amount">${amount}</span> <span class="ingredient-unit">${unit}</span><br>
+				Expiration Date: <span class="ingredient-expiration">${expiration}</span>
+			</div>
+			<div class="item-actions">
+				<button type="button" onclick="editIngredient(this)">Edit</button>
+			</div>
+		`;
 
-	  list.appendChild(li);
-	  document.getElementById("ingredient-name").value = "";
+		list.appendChild(li);
+		document.getElementById("ingredient-name").value = "";
 		document.getElementById("ingredient-food-group").value = "";
 		document.getElementById("ingredient-amount").value = "";
 		document.getElementById("ingredient-unit").value = "";
@@ -422,7 +450,7 @@
 		const dateObtained = li.dataset.dateObtained;
 
 		// Current values
-		const name = li.querySelector(".ingredient-name").textContent.trim();
+		const name = li.dataset.name.trim();
 		const group = li.dataset.foodGroup;
 		const quantity = li.dataset.quantity;
 		const unit = li.dataset.unitMeasurement;
@@ -522,6 +550,7 @@
 		const manualContainer = document.getElementById('manual-entry-container');
 		const manualSubmitBtn = document.getElementById('manual-submit-btn');
 		const manualInput = document.getElementById('manual-barcode-input');
+		const accordianBtn = document.querySelectorAll('.accordian');
 
 		const readerDiv = document.getElementById('reader');
 		const statusText = document.getElementById('scanner-status');
@@ -699,6 +728,36 @@
 			    statusText.style.display = 'block';
 			}
 		}
+	
+		accordianBtn.forEach(accordian => {
+			const panel = accordian.nextElementSibling;
+			const icon = accordian.querySelector('.icon');
+			const hasContent = panel && panel.children.length > 0;
+
+			if (hasContent) {
+				accordian.classList.add('active');
+				panel.classList.toggle('active');
+				icon.classList.replace("fa-caret-down", "fa-caret-up");
+			}
+
+			accordian.addEventListener('click', function() {
+				debugger;
+				const isOpen = panel.classList.contains('active');
+
+				if (isOpen) {
+					panel.classList.remove('active');
+					panel.classList.add('closed');
+					icon.classList.replace('fa-caret-up', 'fa-caret-down');
+				} else {
+					panel.classList.remove('closed');
+					panel.classList.add('active');
+					icon.classList.replace('fa-caret-down', 'fa-caret-up');
+				}
+
+				accordian.classList.toggle('active');
+			});
+		});
+
 	});
 </script>
 {% endblock %}
