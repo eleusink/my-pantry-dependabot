@@ -474,7 +474,44 @@ def bulk_upload_preview(request):
         return redirect('home')
 
     if request.method == 'POST':
-        # Task 5 Logic (Actual database commits) goes here later.
-        pass
+        submitted_ids = {
+            int(val) for key, val in request.POST.items() if key.startswith('row_id_') and val.isdigit()
+        }
+
+        if not submitted_ids:
+            messages.error(request, "No items selected for import.")
+            return redirect('bulk_upload_preview')
+
+        rows_to_save = [row for row in session_data if row['id'] in submitted_ids]
+        
+        invalid_rows = [r for r in rows_to_save if not r.get('valid')]
+        if invalid_rows:
+            messages.error(request, "Cannot import because selected rows contain invalid data.")
+            return redirect('bulk_upload_preview')
+
+        try:
+            with transaction.atomic():
+                ingredients_to_create = []
+                for row in rows_to_save:
+                    ingredients_to_create.append(Ingredient(
+                        user=request.user,
+                        name=row['name'],
+                        quantity=row['quantity'],
+                        unit_measurement=row['unit_measurement'],
+                        date_obtained=row['date_obtained'],
+                        date_expired=row['date_expired'],
+                        food_group=row['food_group'],
+                    ))
+                Ingredient.objects.bulk_create(ingredients_to_create)
+
+            # Clean memory buffer upon success
+            del request.session['bulk_upload_data']
+            messages.success(request, f"Successfully imported {len(ingredients_to_create)} items.")
+            return redirect('home')
+
+        except Exception as exc:
+            logger.error(f"[Bulk Upload] Transaction Failed: {exc}", exc_info=True)
+            messages.error(request, "A database error occurred during import. Transaction aborted safely.")
+            return redirect('bulk_upload_preview')
 
     return render(request, 'bulk_upload_preview.html', {'rows': session_data})
