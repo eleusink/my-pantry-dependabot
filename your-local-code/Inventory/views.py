@@ -11,14 +11,13 @@ from .forms import IngredientForm, CustomUserChangeForm, CustomUserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
-from .models import Ingredient
+from .models import Ingredient, Recipe
 import json
 import os
 import csv
 from openai import OpenAI
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
-from .models import Ingredient, Recipe
 
 
 @login_required
@@ -110,7 +109,12 @@ def edit_ingredient(request):
         the request to communicate success or failure to the template.
     """
     if request.method == 'POST':
-        ingredient_id = request.POST.get('ingredient_id')
+        raw_id = request.POST.get('ingredient_id')
+        try:
+            ingredient_id = int(raw_id)
+        except (TypeError, ValueError):
+            messages.error(request, 'ERROR: Invalid ingredient ID.')
+            return redirect('home')
 
         try:
             with transaction.atomic():
@@ -127,8 +131,8 @@ def edit_ingredient(request):
 
         except ObjectDoesNotExist:
             messages.error(request, 'ERROR: Ingredient not found. It may have been deleted.')
-        except Exception:
-            # print(f"Exception: {e}") # Debugging Code
+        except Exception as exc:
+            print(f"[EDIT] Exception: {exc}") # Debugging Code
             messages.error(request, 'ERROR: Unexpected error trying to edit ingredient.')
 
     return redirect('home')
@@ -249,18 +253,17 @@ def generate_recipes(request):
     today = datetime.date.today()
     soon = today + datetime.timedelta(days=3)
 
-    priority = Ingredient.objects.filter(
-        user=request.user,
-        date_expired__gte=today,
-        date_expired__lte=soon,
-    ).order_by('date_expired')
+    qs = Ingredient.objects.filter(user=request.user).order_by('date_expired')
+    priority = []
+    others = []
+    for ing in qs:
+        # Check if expiration date is today or soon
+        if ing.date_expired and today <= ing.date_expired <= soon:
+            priority.append(ing)
+        else:
+            others.append(ing)
 
-    others = Ingredient.objects.filter(
-        user=request.user,
-        date_expired__gt=soon,
-    ).order_by('date_expired')
-
-    all_ingredients = list(priority) + list(others)
+    all_ingredients = priority + others
 
     if not all_ingredients:
         return JsonResponse(
@@ -358,7 +361,7 @@ def csv_template_download(request):
         headers={'Content-Disposition': 'attachment; filename="inventory_template.csv"'},
     )
 
-    writer = csv.writer(response)
-    writer.writerow(['Name', 'Quantity', 'Unit', 'Date Obtained', 'Expiration Date', 'Food Group'])
+    writer = csv.writer(response, lineterminator='\n')
+    writer.writerow(['name', 'quantity', 'unit_measurement', 'date_obtained', 'date_expired', 'food_group'])
 
     return response
