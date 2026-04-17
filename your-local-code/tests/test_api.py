@@ -38,6 +38,7 @@ class TestProductInfoAPI:
         """Instantiates an unauthenticated DRF APIClient for each test."""
         self.client = APIClient()
 
+    @pytest.mark.xfail(reason="Canary test hitting live API which may fail. Informational failure only.")
     def test_canary_live_api_call(self):
         """Confirms the live Open Food Facts staging API is reachable and returns a known product.
 
