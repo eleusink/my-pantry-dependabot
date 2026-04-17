@@ -53,3 +53,20 @@ class CustomUserChangeForm(UserChangeForm):
 
         model = User
         fields = ['username', 'first_name', 'last_name', 'email']
+
+
+class BulkUploadForm(forms.Form):
+    """Form to handle CSV file uploads for bulk importing ingredients."""
+    file = forms.FileField(
+        label="Select a CSV File",
+        help_text="Please upload a valid CSV file using the template format."
+    )
+
+    def clean_file(self):
+        file = self.cleaned_data.get('file')
+        if file:
+            if not file.name.lower().endswith('.csv'):
+                raise forms.ValidationError("Only CSV files are accepted.")
+            if file.size > 2 * 1024 * 1024:
+                raise forms.ValidationError("File size must be under 2MB.")
+        return file

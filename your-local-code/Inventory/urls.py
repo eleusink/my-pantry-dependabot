@@ -26,4 +26,7 @@ urlpatterns = [
     path('api/recipes/generate/', views.generate_recipes, name='generate_recipes'),
     path('api/recipes/save/', views.save_recipe, name='save_recipe'),
 
+    # Bulk CSV Upload System
+    path('bulk-upload/template/', views.csv_template_download, name='csv_template_download'),
+
 ]

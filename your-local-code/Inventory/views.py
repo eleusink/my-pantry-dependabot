@@ -1,4 +1,5 @@
 from django.contrib import messages
+import logging
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db import transaction
 from rest_framework.decorators import api_view
@@ -11,14 +12,15 @@ from .forms import IngredientForm, CustomUserChangeForm, CustomUserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
-from .models import Ingredient
+from .models import Ingredient, Recipe
 import json
 import os
+import csv
 from openai import OpenAI
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
-from .models import Ingredient, Recipe
 
+logger = logging.getLogger(__name__)
 
 @login_required
 def home(request):
@@ -46,8 +48,8 @@ def home(request):
         form = IngredientForm()
 
     # Query ingredients from database
-    items = Ingredient.objects.select_related('user').filter(user=request.user)
-    saved_recipes = Recipe.objects.filter(user=request.user)
+    items = Ingredient.objects.filter(user=request.user)
+    saved_recipes = Recipe.objects.select_related('user').filter(user=request.user)
     return render(request, 'home.html', {
         'form': form,
         'items': items,
@@ -109,7 +111,12 @@ def edit_ingredient(request):
         the request to communicate success or failure to the template.
     """
     if request.method == 'POST':
-        ingredient_id = request.POST.get('ingredient_id')
+        raw_id = request.POST.get('ingredient_id')
+        try:
+            ingredient_id = int(raw_id)
+        except (TypeError, ValueError):
+            messages.error(request, 'ERROR: Invalid ingredient ID.')
+            return redirect('home')
 
         try:
             with transaction.atomic():
@@ -126,8 +133,8 @@ def edit_ingredient(request):
 
         except ObjectDoesNotExist:
             messages.error(request, 'ERROR: Ingredient not found. It may have been deleted.')
-        except Exception:
-            # print(f"Exception: {e}") # Debugging Code
+        except Exception as exc:
+            logger.error(f"[EDIT] Exception: {exc}", exc_info=True)
             messages.error(request, 'ERROR: Unexpected error trying to edit ingredient.')
 
     return redirect('home')
@@ -153,7 +160,8 @@ def delete_ingredient(request, item_id):
         Always redirects to the 'home' route. Reloads page.
     """
     if request.method == 'POST':
-        deleted_count, _ = Ingredient.objects.filter(id=item_id, user=request.user).delete()
+        with transaction.atomic():
+            deleted_count, _ = Ingredient.objects.filter(id=item_id, user=request.user).delete()
         if deleted_count > 0:
             messages.success(request, 'Ingredient successfully deleted.')
 
@@ -248,18 +256,17 @@ def generate_recipes(request):
     today = datetime.date.today()
     soon = today + datetime.timedelta(days=3)
 
-    priority = Ingredient.objects.filter(
-        user=request.user,
-        date_expired__gte=today,
-        date_expired__lte=soon,
-    ).order_by('date_expired')
+    qs = Ingredient.objects.filter(user=request.user).order_by('date_expired')
+    priority = []
+    others = []
+    for ing in qs:
+        # Check if expiration date is today or soon
+        if ing.date_expired and today <= ing.date_expired <= soon:
+            priority.append(ing)
+        else:
+            others.append(ing)
 
-    others = Ingredient.objects.filter(
-        user=request.user,
-        date_expired__gt=soon,
-    ).order_by('date_expired')
-
-    all_ingredients = list(priority) + list(others)
+    all_ingredients = priority + others
 
     if not all_ingredients:
         return JsonResponse(
@@ -342,3 +349,20 @@ def save_recipe(request):
         return JsonResponse({'success': True, 'id': recipe.id})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+def csv_template_download(request):
+    """Generates and returns a blank CSV template for bulk uploads.
+    
+    Provides the exact, expected column headers to prevent parsing errors.
+    """
+    response = HttpResponse(
+        content_type='text/csv',
+        headers={'Content-Disposition': 'attachment; filename="inventory_template.csv"'},
+    )
+
+    writer = csv.writer(response, lineterminator='\n')
+    writer.writerow(['name', 'quantity', 'unit_measurement', 'date_obtained', 'date_expired', 'food_group'])
+
+    return response
