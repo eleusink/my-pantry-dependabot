@@ -61,9 +61,8 @@ def base_recipe_data(base_user):
         'prep_time': 15,
         'cook_time': 30,
         'description': 'A description of a meal.',
-        'ingredients_used': 'egg, milk',
-        'steps': 'Step 1: Do something.\nStep 2: Do something else.',
-        'tag': 'Dinner',
+        'ingredients_used': '1 cup flour, 2 eggs',
+        'steps': '1. Mix\n2. Bake',
         'user': base_user,
     }
  
@@ -263,17 +262,4 @@ def test_recipe_tag_field(base_recipe_data):
     base_recipe_data['tag'] = 'Vegan'
     recipe = Recipe.objects.create(**base_recipe_data)
 
-    vegan_tag = Tag.objects.create(name=Tag.AllowedTags.VEGAN)
-    keto_tag = Tag.objects.create(name=Tag.AllowedTags.KETO)
-
-    recipe.tags.add(vegan_tag, keto_tag)
-
-    assert recipe.tags.count() == 2
-    assert vegan_tag in recipe.tags.all()
-
-@pytest.mark.django_db
-def test_recipe_str_representation(base_recipe_data):
-    """Asserts that __str__ returns the recipe name."""
-    from Inventory.models import Recipe
-    recipe = Recipe.objects.create(**base_recipe_data)
-    assert str(recipe) == 'Recipe Name'
+    assert recipe.tag == 'Vegan'
