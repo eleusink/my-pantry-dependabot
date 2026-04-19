@@ -258,8 +258,9 @@ def test_invalid_tag_choice():
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-def test_tag_recipe_relationship(base_recipe_data):
-    """Asserts that tags can be associated with recipes."""
+def test_recipe_tag_field(base_recipe_data):
+    """Asserts that a recipe can be categorized using the string tag field."""
+    base_recipe_data['tag'] = 'Vegan'
     recipe = Recipe.objects.create(**base_recipe_data)
 
     vegan_tag = Tag.objects.create(name=Tag.AllowedTags.VEGAN)

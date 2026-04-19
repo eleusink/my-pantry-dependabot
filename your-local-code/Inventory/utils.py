@@ -35,6 +35,17 @@ UNIT_MAPPING = {
     'pounds': Ingredient.Units.POUND,
 }
 
+GROUP_MAPPING = {
+    'fruit': Ingredient.FoodGroups.FRUIT,
+    'vegetable': Ingredient.FoodGroups.VEGETABLE,
+    'grain': Ingredient.FoodGroups.GRAIN,
+    'protein': Ingredient.FoodGroups.PROTEIN,
+    'dairy': Ingredient.FoodGroups.DAIRY,
+    'snack': Ingredient.FoodGroups.SNACK,
+    'beverage': Ingredient.FoodGroups.BEVERAGE,
+    'other': Ingredient.FoodGroups.OTHER,
+}
+
 def normalize_unit(api_unit_string: str) -> str:
     """Normalizes an external API unit string to an internal model choice.
 
@@ -53,6 +64,21 @@ def normalize_unit(api_unit_string: str) -> str:
 
     clean_string = str(api_unit_string).strip().lower()
     return UNIT_MAPPING.get(clean_string, Ingredient.Units.UNIT)
+
+def normalize_group(api_group_string: str) -> str:
+    """Normalizes an external API group string to an internal model choice.
+
+    Args:
+        api_group_string: The raw string passed from the external API or CSV.
+
+    Returns:
+        The mapped internal TextChoice code, or OTHER otherwise.
+    """
+    if not api_group_string:
+        return Ingredient.FoodGroups.OTHER
+
+    clean_string = str(api_group_string).strip().lower()
+    return GROUP_MAPPING.get(clean_string, Ingredient.FoodGroups.OTHER)
 
 class ProductNotFoundError(Exception):
     """Raised when the product barcode is not found in the external database."""

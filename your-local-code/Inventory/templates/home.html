@@ -25,6 +25,7 @@
 				  <div style="margin-bottom: 10px;">
 					  <button type="button" id="start-scan-btn" style="padding: 8px 16px;">📷 Scan Barcode</button>
 					  <button type="button" id="toggle-manual-btn" style="padding: 8px 16px; margin-left: 10px;">⌨️ Type Barcode</button>
+					  <button type="button" id="bulk-import-btn" style="padding: 8px 16px; margin-left: 10px;" onclick="openBulkImportModal()">📁 Bulk Import</button>
 				  </div>
 
 				  <div id="manual-entry-container" style="display: none; margin-bottom: 15px;">
@@ -37,86 +38,116 @@
 			  </div>
 
 		      <form method="POST" class="ingredient-form" id="add-ingredient-form">
-			      {% csrf_token %}
-			      <input type="text" id="ingredient-name" name="name" placeholder="Item Name" required>
-			      <select id="ingredient-food-group" name="food_group" required>
-				      <option value="">Select food group</option>
-				      <option value="FR">Fruit</option>
-				      <option value="VE">Vegetable</option>
-				      <option value="GR">Grain</option>
-				      <option value="PR">Protein</option>
-				      <option value="DA">Dairy</option>
-				      <option value="SN">Snack</option>
-				      <option value="BE">Beverage</option>
-				      <option value="OT">Other</option>
-			      </select>
+				{% csrf_token %}
+				<div class="add-item-formatting">
+				<div class="add-item-row">
+					<div></div>
+					<input type="text" id="ingredient-name" name="name" placeholder="Item Name" required>
+					<select id="ingredient-food-group" name="food_group" required>
+						<option value="">Select food group</option>
+						<option value="FR">Fruit</option>
+						<option value="VE">Vegetable</option>
+						<option value="GR">Grain</option>
+						<option value="PR">Protein</option>
+						<option value="DA">Dairy</option>
+						<option value="SN">Snack</option>
+						<option value="BE">Beverage</option>
+						<option value="OT">Other</option>
+					</select>
+					<div></div>
+				</div>
 
-			      <input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="0.01" step="0.01" required>
-			      <select id="ingredient-unit" name="unit_measurement" required>
-				      <option value="">Select unit</option>
-				      <option value="A">count</option>
-				      <option value="OZ">oz</option>
-				      <option value="LB">lb</option>
-				      <option value="G">g</option>
-				      <option value="KG">kg</option>
-				      <option value="ML">ml</option>
-				      <option value="L">l</option>
-				      <option value="CUP">cup(s)</option>
-				      <option value="TBSP">tbsp</option>
-				      <option value="TSP">tsp</option>
-				      <option value="BX">box(es)</option>
-				      <option value="BAGS">bag(s)</option>
-				      <option value="BTL">bottle(s)</option>
-				      <option value="CAN">can(s)</option>
-				      <option value="CRT">carton(s)</option>
-			      </select>
+				<div class="add-item-row">
+					<div></div>
+					<input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="0.01" step="0.01" required>
+					<select id="ingredient-unit" name="unit_measurement" required>
+						<option value="">Select unit</option>
+						<option value="A">count</option>
+						<option value="OZ">oz</option>
+						<option value="LB">lb</option>
+						<option value="G">g</option>
+						<option value="KG">kg</option>
+						<option value="ML">ml</option>
+						<option value="L">l</option>
+						<option value="CUP">cup(s)</option>
+						<option value="TBSP">tbsp</option>
+						<option value="TSP">tsp</option>
+						<option value="BX">box(es)</option>
+						<option value="BAGS">bag(s)</option>
+						<option value="BTL">bottle(s)</option>
+						<option value="CAN">can(s)</option>
+						<option value="CRT">carton(s)</option>
+					</select>
+					<div></div>
+				</div>
 
-			      <label for="ingredient-obtained">Date Obtained</label>
-			      <input type="date" id="ingredient-obtained" name="date_obtained" value="{% now 'Y-m-d' %}" required>
+				<div class="add-item-row">
+					<div></div>
+					<label class="add-item-label" for="ingredient-obtained">Date Obtained:</label>
+					<input type="date" id="ingredient-obtained" name="date_obtained" value="{% now 'Y-m-d' %}" required>
+					<div></div>
+				</div>
 
-			      <label for="ingredient-expiration">Expiration Date</label>
-			      <input type="date" id="ingredient-expiration" name="date_expired" onchange="validateExpirationDate(this)" required>
-
-				  <script>
+				<div class="add-item-row">
+					<div></div>
+					<label class="add-item-label" for="ingredient-expiration">Expiration Date:</label>
+					<input type="date" id="ingredient-expiration" name="date_expired" onchange="validateExpirationDate(this)" required>
+					<div></div>
+				</div>
+					
+				<script>
 					document.addEventListener('DOMContentLoaded', function() {
 						const today = new Date().toISOString().split('T')[0];
 						document.getElementById('ingredient-obtained').value = today;
 					});
-				  </script>
+				</script>
 
-			      <button type="submit">Add Item</button>
-		      </form>
+				<div class="add-item-button">
+					<button type="submit">Add Item</button>
+				</div>
+				</div>
+			</form>
 
 
 		      <ul id="ingredient-list" class="ingredient-list">
-			      {% for item in items %}
-			      <li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.get_food_group_display }}" data-unit-measurement="{{ item.unit_measurement }}" data-quantity="{{ item.quantity }}" data-expiration="{{ item.date_expired|date:'Y-m-d' }}" class="{% if item.minutes_remaining <= 4320 %}expiring{% endif %}">
-				      <div class="ingredient-info">
-					      <span class="ingredient-name ingredient-label">
-							{% if item.minutes_remaining <= 0 %}
-								<i class="fa fa-calendar-times expired-icon" title="Expired"></i> 
-							{% elif item.minutes_remaining <= 4320 %}
-								<i class="fa fa-exclamation-triangle expires-soon-icon" title="Expiring Soon"></i>
-							{% endif %}
-							{{ item.name }}
-						  </span><br>
-					      Food Group:  <span class="ingredient-group">{{ item.get_food_group_display }}</span><br>
-					      Quantity: <span class="ingredient-amount">{{ item.quantity }}</span> <span class="ingredient-unit">{{ item.get_unit_measurement_display }}</span><br>
-					      Date Obtained: <span class="ingredient-obtained">{{ item.date_obtained }}</span><br>
-					      Expiration Date: <span class="ingredient-expiration">{{ item.date_expired }}</span>
-				      </div>
-
-				      <div class="item-actions">
-					      <button type="button" onclick="editIngredient(this)">Edit</button>
-						  <form id="delete-form-{{ item.id }}" method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
-							{% csrf_token %}
-							<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
-								Delete
-							</button>
-						</form>
-				      </div>
-			      </li>
-			      {% endfor %}
+				{% for group in groups %}
+					<button class="group-label accordian">
+						{{ group }}
+						<i class="fas fa-caret-down icon"></i>
+					</button>
+					<div class="accordian-panel">
+						{% for item in items %}
+						{% if item.get_food_group_display == group %}
+						<li data-ingredient-id="{{ item.id }}" 
+							data-name="{{ item.name }}"
+							data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
+							data-food-group="{{ item.get_food_group_display }}" 
+							data-unit-measurement="{{ item.unit_measurement }}" 
+							data-quantity="{{ item.quantity }}" 
+							data-expiration="{{ item.date_expired|date:'Y-m-d' }}" 
+						class="
+							{% if item.minutes_remaining <= 0 %}expired-symbol expiring-background
+							{% elif item.minutes_remaining <= 4320 %}expires-soon-symbol expiring-background
+							{% else %}normal-symbol normal-background{% endif %}
+						">
+							<!-- class="{% if item.minutes_remaining <= 4320 %}expiring{% else %}normal-item{% endif %}"> -->
+							<span class="ingredient-info">
+								<span class="ingredient-name">{{ item }}</span>
+							</span>
+							<div class="item-actions">
+								<button type="button" onclick="editIngredient(this)">Edit</button>
+								<form id="delete-form-{{ item.id }}" method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+									{% csrf_token %}
+									<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
+										Delete
+									</button>
+								</form>
+							</div>
+						</li>
+						{% endif %}
+						{% endfor %}
+					</div>
+				{% endfor %}
 		      </ul>
 	      </div>
       </div>
@@ -177,7 +208,14 @@
 			<ul id="expired-list" class="expired-list">
 				{% for item in items %}
 					{% if item.minutes_remaining <= 0 %}
-					<li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.food_group }}" data-unit-measurement="{{ item.unit_measurement }}" data-quantity="{{ item.quantity }}" data-expiration="{{ item.date_expired|date:'Y-m-d' }}">
+					<li data-ingredient-id="{{ item.id }}" 
+						data-name="{{ item.name }}"
+						data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
+						data-food-group="{{ item.food_group }}" 
+						data-unit-measurement="{{ item.unit_measurement }}" 
+						data-quantity="{{ item.quantity }}" 
+						data-expiration="{{ item.date_expired|date:'Y-m-d' }}"
+					>
 						<div class="expired-info">
 							<span class="ingredient-name ingredient-label">{{ item.name }}</span>
 							<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
@@ -186,7 +224,9 @@
 							<button type="button" onclick="editIngredient(this)">Edit</button>
 							<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
 								{% csrf_token %}
-								<button type="submit">Delete</button>
+								<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
+									Delete
+								</button>
 							</form>
 				      	</div>
 					</li>
@@ -198,7 +238,14 @@
 			<ul id="expiring-soon-list" class="expiring-soon-list">
 				{% for item in items %}
 					{% if item.minutes_remaining <= 4320 and item.minutes_remaining > 0 %}
-					<li data-ingredient-id="{{ item.id }}" data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" data-food-group="{{ item.get_food_group_display }}" data-unit-measurement="{{ item.unit_measurement }}" data-quantity="{{ item.quantity }}" data-expiration="{{ item.date_expired|date:'Y-m-d' }}">
+					<li data-ingredient-id="{{ item.id }}" 
+						data-name="{{ item.name }}"
+						data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
+						data-food-group="{{ item.food_group }}" 
+						data-unit-measurement="{{ item.unit_measurement }}" 
+						data-quantity="{{ item.quantity }}" 
+						data-expiration="{{ item.date_expired|date:'Y-m-d' }}"
+					>
 						<div class="expiring-info">
 							<span class="ingredient-name ingredient-label">{{ item.name }}</span>
 							<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
@@ -207,7 +254,9 @@
 					      	<button type="button" onclick="editIngredient(this)">Edit</button>
 							<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
 								{% csrf_token %}
-								<button type="submit">Delete</button>
+								<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
+									Delete
+								</button>
 							</form>
 				      	</div>
 					</li>
@@ -379,30 +428,30 @@
 		  return;
 		}
 
-	  const name = document.getElementById('ingredient-name').value.trim();
-	  const foodGroup = document.getElementById('ingredient-food-group').value;
-	  const amount = document.getElementById('ingredient-amount').value;
-	  const unit = document.getElementById('ingredient-unit').value;
-	  const expiration = document.getElementById('ingredient-expiration').value;
-	  if (!name || !foodGroup || !amount || !unit || !expiration) return;
+		const name = document.getElementById('ingredient-name').value.trim();
+		const foodGroup = document.getElementById('ingredient-food-group').value;
+		const amount = document.getElementById('ingredient-amount').value;
+		const unit = document.getElementById('ingredient-unit').value;
+		const expiration = document.getElementById('ingredient-expiration').value;
+		if (!name || !foodGroup || !amount || !unit || !expiration) return;
 
-	  const list = document.getElementById('ingredient-list');
-	  const li = document.createElement('li');
+		const list = document.getElementById('ingredient-list');
+		const li = document.createElement('li');
 
-	  li.innerHTML = `
-	  <div class="ingredient-info">
-		<span class="ingredient-name">${name}</span><br>
-		Food Group: <span class="ingredient-group">${foodGroup}</span><br>
-		Quantity: <span class="ingredient-amount">${amount}</span> <span class="ingredient-unit">${unit}</span><br>
-	  Expiration Date: <span class="ingredient-expiration">${expiration}</span>
-	  </div>
-	  <div class="item-actions">
-	    <button type="button" onclick="editIngredient(this)">Edit</button>
-	  </div>
-	  `;
+		li.innerHTML = `
+			<div class="ingredient-info">
+				<span class="ingredient-name">${name}</span><br>
+				Food Group: <span class="ingredient-group">${foodGroup}</span><br>
+				Quantity: <span class="ingredient-amount">${amount}</span> <span class="ingredient-unit">${unit}</span><br>
+				Expiration Date: <span class="ingredient-expiration">${expiration}</span>
+			</div>
+			<div class="item-actions">
+				<button type="button" onclick="editIngredient(this)">Edit</button>
+			</div>
+		`;
 
-	  list.appendChild(li);
-	  document.getElementById("ingredient-name").value = "";
+		list.appendChild(li);
+		document.getElementById("ingredient-name").value = "";
 		document.getElementById("ingredient-food-group").value = "";
 		document.getElementById("ingredient-amount").value = "";
 		document.getElementById("ingredient-unit").value = "";
@@ -426,7 +475,7 @@
 		const dateObtained = li.dataset.dateObtained;
 
 		// Current values
-		const name = li.querySelector(".ingredient-name").textContent.trim();
+		const name = li.dataset.name.trim();
 		const group = li.dataset.foodGroup;
 		const quantity = li.dataset.quantity;
 		const unit = li.dataset.unitMeasurement;
@@ -460,7 +509,7 @@
 
 			<div class="form-group">
 			<label for="edit-quantity">Quantity</label>
-			<input type="number" name="quantity" value="${quantity}" min="1" required>
+			<input type="number" name="quantity" value="${quantity}" min="0.1" step="0.01" required>
 			</div>
 
 			<div class="form-group">
@@ -516,6 +565,29 @@
 
     openModal("Confirm Deletion", modalBody);
 	}
+
+	function openBulkImportModal() {
+		const formContent = `
+		<form method="POST" action="{% url 'bulk_upload_start' %}" enctype="multipart/form-data">
+			{% csrf_token %}
+			<div class="form-group" style="text-align: center; margin-bottom: 20px;">
+				<p style="margin-bottom: 10px;">Upload a CSV file to carefully add multiple items at once.</p>
+				<a href="{% url 'csv_template_download' %}" style="display: inline-block; padding: 6px 12px; background: #e9ecef; border: 1px solid #ccc; border-radius: 4px; color: #333; text-decoration: none; font-weight: bold;">
+					<i class="fa fa-download"></i> Download CSV Template
+				</a>
+			</div>
+			<div class="form-group" style="margin-bottom: 20px;">
+				<label for="id_file">Select a CSV File</label>
+				<input type="file" name="file" id="id_file" accept=".csv" required style="width: 100%; border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+			</div>
+			<div class="modal-actions">
+				<button type="submit">Upload & Preview</button>
+				<button type="button" onclick="closeModal()">Cancel</button>
+			</div>
+		</form>
+		`;
+		openModal('Bulk Import Ingredients', formContent);
+	}
 </script>
 
 <script src="{% static 'js/html5-qrcode.min.js' %}"></script>
@@ -526,6 +598,7 @@
 		const manualContainer = document.getElementById('manual-entry-container');
 		const manualSubmitBtn = document.getElementById('manual-submit-btn');
 		const manualInput = document.getElementById('manual-barcode-input');
+		const accordianBtn = document.querySelectorAll('.accordian');
 
 		const readerDiv = document.getElementById('reader');
 		const statusText = document.getElementById('scanner-status');
@@ -703,6 +776,36 @@
 			    statusText.style.display = 'block';
 			}
 		}
+	
+		accordianBtn.forEach(accordian => {
+			const panel = accordian.nextElementSibling;
+			const icon = accordian.querySelector('.icon');
+			const hasContent = panel && panel.children.length > 0;
+
+			if (hasContent) {
+				accordian.classList.add('active');
+				panel.classList.toggle('active');
+				icon.classList.replace("fa-caret-down", "fa-caret-up");
+			}
+
+			accordian.addEventListener('click', function() {
+				debugger;
+				const isOpen = panel.classList.contains('active');
+
+				if (isOpen) {
+					panel.classList.remove('active');
+					panel.classList.add('closed');
+					icon.classList.replace('fa-caret-up', 'fa-caret-down');
+				} else {
+					panel.classList.remove('closed');
+					panel.classList.add('active');
+					icon.classList.replace('fa-caret-down', 'fa-caret-up');
+				}
+
+				accordian.classList.toggle('active');
+			});
+		});
+
 	});
 </script>
 {% endblock %}

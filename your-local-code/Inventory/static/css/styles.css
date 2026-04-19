@@ -100,6 +100,8 @@ h2{ margin: 0; }
   position: relative;
   padding: 1rem;
   transition: all 0.3s ease;
+  overflow-y: auto;
+  height: 620px;
 }
 
 .panel-header{
@@ -158,15 +160,87 @@ h2{ margin: 0; }
 }
 
 /* ================= INGREDIENTS DISPLAY ================= */
-/* .ingredient-info {
-} */
-
-.expiring {
-  background-color: rgba(255, 0, 0, 0.1);
+.ingredient-list {
+  list-style: none;
+  padding-left: 0;
 }
 
-.ingredient-label {
+.ingredient-list li {
+  padding-left: 28px;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.ingredient-list li::before {
+  position: absolute;
+  left: 6px;
+  top: 20%;
+  font-family: "Font Awesome 5 Free";
+  font-weight: 900;
+}
+
+li.normal-symbol::before {
+  content: "\f058";
+}
+
+li.expires-soon-symbol::before {
+  content: "\f071";
+}
+
+li.expired-symbol::before {
+  content: "\f273";
+}
+
+.ingredient-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-actions {
+  margin-left: 10px;
+  white-space: nowrap;
+  top: 0;
+}
+
+.normal-background {
+  /* background-color: rgba(255, 255, 255, 0.1); */
+  /* border-radius: 7px; */
+  padding: 3px;
+}
+
+.expiring-background {
+  background-color: rgba(255, 0, 0, 0.1);
+  border-radius: 7px;
+  padding: 3px;
+}
+
+.group-label {
   font-weight: bold;
+}
+
+/* ================= ADD INGREDIENT FORM DISPLAY ================= */
+/* 2 (40/40%) column grid for add ingredient form */
+.add-item-formatting {
+  display: grid;
+  grid-template-columns: 3% 45% 45% 7%; /* Empty <div> is for 20% formatting */
+  gap: 5px;
+}
+
+/* Make the button have 1 column instead of 2, then put it on the right */
+.add-item-button {
+  grid-column: 3;
+  justify-self: end;
+  align-self: baseline;
+  padding: 5 0 0 0px;
+}
+
+.add-item-label {
+  font-weight: bold;
+}
+
+.add-item-row {
+  display: contents;
 }
 
 /* ================= RECIPES ================= */
@@ -255,6 +329,49 @@ h2{ margin: 0; }
   .panel-grid{
     grid-template-columns: 1fr;
   }
+}
+
+/* ================= ACCORDIANS ================= */
+.accordian {
+  border: none;
+  outline: none;
+  cursor: pointer;
+  transition: 0.4s;
+  width: 100%;
+  border-radius: 7px;
+  background: #d9822b;
+  color: white;
+  padding: 3px;
+}
+
+.accordian:hover {
+  background-color: rgba(255, 0, 0, 0.1);
+  color: black;
+}
+
+.accordian icon {
+  float: right;
+  transition: transform 0.3 ease;
+}
+
+.accordian-panel {
+  border: none;
+  border-radius: 7px;
+  background: white;
+  width: 100%;
+  max-height: 1000px;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.accordian-panel.active {
+  max-height: 1000px;
+  transition: max-height 0.5s ease-in;
+}
+
+.accordian-panel.closed {
+  max-height: 0;
+  transition: max-height 0.3s ease-in;
 }
 
 /* ================= MODALS ================= */

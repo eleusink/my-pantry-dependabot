@@ -1,3 +1,4 @@
+import csv
 from django import forms
 from .models import Ingredient
 from django.contrib.auth.models import User
@@ -53,3 +54,52 @@ class CustomUserChangeForm(UserChangeForm):
 
         model = User
         fields = ['username', 'first_name', 'last_name', 'email']
+
+
+class BulkUploadForm(forms.Form):
+    """Handles the validation and processing of bulk inventory CSV uploads.
+
+    Validates that the provided file strictly matches a comma-separated values 
+    formatting and does not manually exceed memory buffer allocation limit rules.
+
+    Attributes:
+        file (FileField): The uploaded payload file containing comma separated data.
+    """
+    file = forms.FileField(
+        label="Select a CSV File",
+        help_text="Please upload a valid CSV file using the template format."
+    )
+
+    def clean_file(self):
+        """Validates the uploaded file extension, content signatures, and size.
+
+        Returns:
+            The raw file object if validation passes.
+
+        Raises:
+            ValidationError: If the file lacks a .csv extension, is a binary, or exceeds 2MB.
+        """
+        file = self.cleaned_data.get('file')
+        if file:
+            if not file.name.lower().endswith('.csv'):
+                raise forms.ValidationError("Only CSV files are accepted.")
+            
+            # Advanced MIME/CSV sniff to reject binaries and unstructured files masquerading as CSV
+            sample = file.read(2048)
+            file.seek(0)
+            
+            if b'\x00' in sample:
+                raise forms.ValidationError("Invalid file content. Binary files are not allowed.")
+                
+            try:
+                decoded_sample = sample.decode('utf-8-sig')
+                if decoded_sample.strip():
+                    csv.Sniffer().sniff(decoded_sample)
+            except csv.Error:
+                raise forms.ValidationError("File content does not appear to be a structurally valid CSV format.")
+            except UnicodeDecodeError:
+                raise forms.ValidationError("File must be standard textual UTF-8.")
+                
+            if file.size > 2 * 1024 * 1024:
+                raise forms.ValidationError("File size must be under 2MB.")
+        return file
