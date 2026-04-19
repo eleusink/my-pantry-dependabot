@@ -355,6 +355,16 @@ def save_recipe(request):
         return JsonResponse({'success': True, 'id': recipe.id})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+    
+@login_required
+@require_POST
+def delete_recipe(request, recipe_id):
+    deleted_count, _ = Recipe.objects.filter(id=recipe_id, user=request.user).delete()
+    if deleted_count == 0:
+        messages.warning(request, 'Recipe not found or already deleted.')
+    else:
+        messages.success(request, 'Recipe removed.')
+    return redirect('home')
 
 
 @login_required

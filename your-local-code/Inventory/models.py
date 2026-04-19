@@ -201,16 +201,24 @@ class Recipe(models.Model):
     )
     ingredients_used = models.TextField(
         default='',
-        help_text="Comma-separated list of ingredients used."
+        help_text="Comma-separated list of ingredients used.",
+        blank=True
     )
     steps = models.TextField(
         default='',
-        help_text="Step-by-step cooking instructions."
+        help_text="Step-by-step cooking instructions.",
+        blank=True
     )
     tag = models.CharField(
         max_length=50,
         default='Other',
         help_text="Recipe category e.g. Dinner, Breakfast."
+    )
+    tags = models.ManyToManyField(
+        Tag,
+        blank=True,
+        related_name='recipes',
+        help_text="Tags associated with this recipe."
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -236,7 +244,6 @@ class Recipe(models.Model):
             raise ValidationError("Cook time can't be negative.")
         if self.description == "":
             raise ValidationError("There needs to be something in the description field.")
-
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
