@@ -297,6 +297,7 @@ Rules:
 - Prioritize ingredients marked [USE FIRST — expiring soon]
 - You may assume basic pantry staples (salt, pepper, oil, water) are available
 - Each recipe must only use ingredients from the list above (plus staples)
+- Recipe names must only contain VALID characters (I.E. letters, hyphens, apostrophes, spaces)
 
 Respond ONLY with a valid JSON array (no markdown, no explanation) in this exact format:
 [
