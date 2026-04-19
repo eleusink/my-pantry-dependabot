@@ -22,8 +22,8 @@ urlpatterns = [
 
     # API endpoints
     path('api/product/', views.product_info_api, name='product_info_api'),
-    # Recipe generation and saving
+    # Recipe generation and saving/deleting
     path('api/recipes/generate/', views.generate_recipes, name='generate_recipes'),
     path('api/recipes/save/', views.save_recipe, name='save_recipe'),
-
+    path('api/recipes/delete/<int:recipe_id>/', views.delete_recipe, name='delete_recipe'),
 ]

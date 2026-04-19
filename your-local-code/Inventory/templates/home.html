@@ -149,6 +149,10 @@
 							<li>{{ step }}</li>
 						{% endfor %}
 					</ol>
+					<form method="POST" action="{% url 'delete_recipe' recipe.id %}">
+						{% csrf_token %}
+						<button class="toggle-btn" type="submit">Remove Recipe</button>
+					</form>
 				</div>
 			</div>
 			{% endfor %}

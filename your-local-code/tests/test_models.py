@@ -61,6 +61,9 @@ def base_recipe_data(base_user):
         'prep_time': 15,
         'cook_time': 30,
         'description': 'A description of a meal.',
+        'ingredients_used': 'egg, milk',
+        'steps': 'Step 1: Do something.\nStep 2: Do something else.',
+        'tag': 'Dinner',
         'user': base_user,
     }
  
@@ -266,3 +269,10 @@ def test_tag_recipe_relationship(base_recipe_data):
 
     assert recipe.tags.count() == 2
     assert vegan_tag in recipe.tags.all()
+
+@pytest.mark.django_db
+def test_recipe_str_representation(base_recipe_data):
+    """Asserts that __str__ returns the recipe name."""
+    from Inventory.models import Recipe
+    recipe = Recipe.objects.create(**base_recipe_data)
+    assert str(recipe) == 'Recipe Name'
