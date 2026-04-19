@@ -217,6 +217,30 @@ li.expired-symbol::before {
   font-weight: bold;
 }
 
+/* ================= ADD INGREDIENT FORM DISPLAY ================= */
+/* 2 (40/40%) column grid for add ingredient form */
+.add-item-formatting {
+  display: grid;
+  grid-template-columns: 3% 45% 45% 7%; /* Empty <div> is for 20% formatting */
+  gap: 5px;
+}
+
+/* Make the button have 1 column instead of 2, then put it on the right */
+.add-item-button {
+  grid-column: 3;
+  justify-self: end;
+  align-self: baseline;
+  padding: 5 0 0 0px;
+}
+
+.add-item-label {
+  font-weight: bold;
+}
+
+.add-item-row {
+  display: contents;
+}
+
 /* ================= RECIPES ================= */
 .recipe-header-actions {
     display: flex;
