@@ -215,7 +215,18 @@ def step_impl_18(context):
 @then('I should have {count:d} ingredients in my inventory')
 def step_impl_19(context, count):
     html = context.response.content.decode('utf-8')
-    ui_count = html.count('data-ingredient-id="')  # Standard DOM item injection mapping loop count
+    
+    # Isolate the main inventory list to prevent double-counting items also in the "Expires Soon" notification panel
+    start_tag = '<ul id="ingredient-list"'
+    start_idx = html.find(start_tag)
+    
+    if start_idx != -1:
+        # Search for the *first* closing </ul> *after* the start tag 
+        list_html = html[start_idx:html.find('</ul>', start_idx)]
+    else:
+        list_html = html
+        
+    ui_count = list_html.count('data-ingredient-id="')  # Standard DOM item injection mapping loop count
     assert ui_count == count, f"UI Failure: Expected {count} items in DOM layout, but counted {ui_count}."
     
     # Filter by user context
