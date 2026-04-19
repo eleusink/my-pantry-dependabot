@@ -100,6 +100,8 @@ h2{ margin: 0; }
   position: relative;
   padding: 1rem;
   transition: all 0.3s ease;
+  overflow-y: auto;
+  height: 620px;
 }
 
 .panel-header{
@@ -172,7 +174,7 @@ h2{ margin: 0; }
 
 .ingredient-list li::before {
   position: absolute;
-  left: 2%;
+  left: 6px;
   top: 20%;
   font-family: "Font Awesome 5 Free";
   font-weight: 900;
@@ -215,6 +217,30 @@ li.expired-symbol::before {
 
 .group-label {
   font-weight: bold;
+}
+
+/* ================= ADD INGREDIENT FORM DISPLAY ================= */
+/* 2 (40/40%) column grid for add ingredient form */
+.add-item-formatting {
+  display: grid;
+  grid-template-columns: 3% 45% 45% 7%; /* Empty <div> is for 20% formatting */
+  gap: 5px;
+}
+
+/* Make the button have 1 column instead of 2, then put it on the right */
+.add-item-button {
+  grid-column: 3;
+  justify-self: end;
+  align-self: baseline;
+  padding: 5 0 0 0px;
+}
+
+.add-item-label {
+  font-weight: bold;
+}
+
+.add-item-row {
+  display: contents;
 }
 
 /* ================= RECIPES ================= */
@@ -333,7 +359,7 @@ li.expired-symbol::before {
   border-radius: 7px;
   background: white;
   width: 100%;
-  max-height: 1000;
+  max-height: 1000px;
   overflow: hidden;
   transition: max-height 0.3s ease-out;
 }

@@ -38,55 +38,75 @@
 			  </div>
 
 		      <form method="POST" class="ingredient-form" id="add-ingredient-form">
-			      {% csrf_token %}
-			      <input type="text" id="ingredient-name" name="name" placeholder="Item Name" required>
-			      <select id="ingredient-food-group" name="food_group" required>
-				      <option value="">Select food group</option>
-				      <option value="FR">Fruit</option>
-				      <option value="VE">Vegetable</option>
-				      <option value="GR">Grain</option>
-				      <option value="PR">Protein</option>
-				      <option value="DA">Dairy</option>
-				      <option value="SN">Snack</option>
-				      <option value="BE">Beverage</option>
-				      <option value="OT">Other</option>
-			      </select>
+				{% csrf_token %}
+				<div class="add-item-formatting">
+				<div class="add-item-row">
+					<div></div>
+					<input type="text" id="ingredient-name" name="name" placeholder="Item Name" required>
+					<select id="ingredient-food-group" name="food_group" required>
+						<option value="">Select food group</option>
+						<option value="FR">Fruit</option>
+						<option value="VE">Vegetable</option>
+						<option value="GR">Grain</option>
+						<option value="PR">Protein</option>
+						<option value="DA">Dairy</option>
+						<option value="SN">Snack</option>
+						<option value="BE">Beverage</option>
+						<option value="OT">Other</option>
+					</select>
+					<div></div>
+				</div>
 
-			      <input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="0.01" step="0.01" required>
-			      <select id="ingredient-unit" name="unit_measurement" required>
-				      <option value="">Select unit</option>
-				      <option value="A">count</option>
-				      <option value="OZ">oz</option>
-				      <option value="LB">lb</option>
-				      <option value="G">g</option>
-				      <option value="KG">kg</option>
-				      <option value="ML">ml</option>
-				      <option value="L">l</option>
-				      <option value="CUP">cup(s)</option>
-				      <option value="TBSP">tbsp</option>
-				      <option value="TSP">tsp</option>
-				      <option value="BX">box(es)</option>
-				      <option value="BAGS">bag(s)</option>
-				      <option value="BTL">bottle(s)</option>
-				      <option value="CAN">can(s)</option>
-				      <option value="CRT">carton(s)</option>
-			      </select>
+				<div class="add-item-row">
+					<div></div>
+					<input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="0.01" step="0.01" required>
+					<select id="ingredient-unit" name="unit_measurement" required>
+						<option value="">Select unit</option>
+						<option value="A">count</option>
+						<option value="OZ">oz</option>
+						<option value="LB">lb</option>
+						<option value="G">g</option>
+						<option value="KG">kg</option>
+						<option value="ML">ml</option>
+						<option value="L">l</option>
+						<option value="CUP">cup(s)</option>
+						<option value="TBSP">tbsp</option>
+						<option value="TSP">tsp</option>
+						<option value="BX">box(es)</option>
+						<option value="BAGS">bag(s)</option>
+						<option value="BTL">bottle(s)</option>
+						<option value="CAN">can(s)</option>
+						<option value="CRT">carton(s)</option>
+					</select>
+					<div></div>
+				</div>
 
-			      <label for="ingredient-obtained">Date Obtained</label>
-			      <input type="date" id="ingredient-obtained" name="date_obtained" value="{% now 'Y-m-d' %}" required>
+				<div class="add-item-row">
+					<div></div>
+					<label class="add-item-label" for="ingredient-obtained">Date Obtained:</label>
+					<input type="date" id="ingredient-obtained" name="date_obtained" value="{% now 'Y-m-d' %}" required>
+					<div></div>
+				</div>
 
-			      <label for="ingredient-expiration">Expiration Date</label>
-			      <input type="date" id="ingredient-expiration" name="date_expired" onchange="validateExpirationDate(this)" required>
-
-				  <script>
+				<div class="add-item-row">
+					<div></div>
+					<label class="add-item-label" for="ingredient-expiration">Expiration Date:</label>
+					<input type="date" id="ingredient-expiration" name="date_expired" onchange="validateExpirationDate(this)" required>
+					<div></div>
+				</div>
+					
+				<script>
 					document.addEventListener('DOMContentLoaded', function() {
 						const today = new Date().toISOString().split('T')[0];
 						document.getElementById('ingredient-obtained').value = today;
 					});
-				  </script>
+				</script>
 
-			      <button type="submit">Add Item</button>
-		      </form>
+				<div class="add-item-button">
+					<button type="submit">Add Item</button>
+				</div>
+				</div>
+			</form>
 
 
 		      <ul id="ingredient-list" class="ingredient-list">
@@ -485,7 +505,7 @@
 
 			<div class="form-group">
 			<label for="edit-quantity">Quantity</label>
-			<input type="number" name="quantity" value="${quantity}" min="1" required>
+			<input type="number" name="quantity" value="${quantity}" min="0.1" step="0.01" required>
 			</div>
 
 			<div class="form-group">
