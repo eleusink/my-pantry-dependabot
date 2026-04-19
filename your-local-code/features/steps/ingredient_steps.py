@@ -8,34 +8,36 @@ import string
 
 
 
-@given('I have an ingredient "{name}" with quantity "{quantity}"')
-def step_impl_1(context, name, quantity):
-    future = timezone.now().date() + timedelta(days=1)
-    today = timezone.now().date().isoformat()
-
-    context.ingredient = Ingredient.objects.create(
-        user=context.user,  # Added user context
+def _create_test_ingredient(user, name, quantity="1.00", date_expired=None, date_obtained=None):
+    """Helper to DRY up ingredient creation across test steps."""
+    return Ingredient.objects.create(
+        user=user,
         name=name,
         quantity=quantity,
-        date_expired=future,
-        date_obtained=today,
-        food_group='OT',  # Default food group (Other)
-        unit_measurement='A',  # Default unit (Amount/count)
+        date_expired=date_expired or (timezone.now().date() + timedelta(days=1)),
+        date_obtained=date_obtained or timezone.now().date().isoformat(),
+        food_group='OT',
+        unit_measurement='A'
+    )
+
+@given('I have an ingredient "{name}" with quantity "{quantity}"')
+def step_impl_1(context, name, quantity):
+    context.ingredient = _create_test_ingredient(
+        user=context.user, 
+        name=name, 
+        quantity=quantity
     )
 
 
 @given('I have an ingredient "{name}" with expiration date "{date}"')
 def step_impl_2(context, name, date):
     date_obj = datetime.strptime(date, "%Y-%m-%d").date()
-
-    context.ingredient = Ingredient.objects.create(
-        user=context.user,  # Added user context
+    context.ingredient = _create_test_ingredient(
+        user=context.user,
         name=name,
-        quantity='2',  # Default quantity
+        quantity='2',
         date_expired=date_obj,
-        date_obtained='2026-03-01',
-        food_group='OT',
-        unit_measurement='A',
+        date_obtained='2026-03-01'
     )
 
 
@@ -55,16 +57,13 @@ def step_impl_4(context):
 @given('I have the following ingredients in my inventory')
 def step_impl_5(context):
     today = timezone.now().date()
-
     for row in context.table:
-        Ingredient.objects.create(
-            user=context.user,  # Added user context
+        _create_test_ingredient(
+            user=context.user,
             name=row['name'],
             quantity=row.get('quantity', '1.00'),
             date_expired=row['expiration_date'],
-            date_obtained=today,
-            food_group='OT',
-            unit_measurement='A',
+            date_obtained=today
         )
 
 
@@ -72,19 +71,14 @@ def step_impl_5(context):
 def step_impl_6(context, count):
     today = timezone.now().date()
     future = today + timedelta(days=30)
-
     letters = string.ascii_uppercase
+    
     for i in range(count):
-        name = f"Item{letters[i]}"
-
-        Ingredient.objects.create(
-            user=context.user,  # Added user context
-            name=name,
-            quantity="1.00",
+        _create_test_ingredient(
+            user=context.user,
+            name=f"Item{letters[i]}",
             date_expired=future,
-            date_obtained=today,
-            food_group='OT',
-            unit_measurement='A',
+            date_obtained=today
         )
 
 
@@ -221,11 +215,15 @@ def step_impl_19(context, count):
     start_idx = html.find(start_tag)
     
     if start_idx != -1:
-        # Search for the *first* closing </ul> *after* the start tag 
-        list_html = html[start_idx:html.find('</ul>', start_idx)]
+        end_idx = html.find('</ul>', start_idx)
+        if end_idx == -1:
+            end_idx = len(html)
+        list_html = html[start_idx:end_idx]
     else:
         list_html = html
         
+    # BRITTLE: If the DOM template layout shifts from injecting `<li data-ingredient-id="` to using standard HTML `<div>` 
+    # rows, this string search will immediately trigger a falsely flagged UI failure reporting 0 items found. 
     ui_count = list_html.count('data-ingredient-id="')  # Standard DOM item injection mapping loop count
     assert ui_count == count, f"UI Failure: Expected {count} items in DOM layout, but counted {ui_count}."
     
