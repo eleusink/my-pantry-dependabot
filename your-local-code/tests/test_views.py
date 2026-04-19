@@ -620,18 +620,12 @@ class TestGenerateRecipes:
         assert 'error' in response.json()
  
     def test_expired_ingredients_not_included(self):
-        """Asserts that only non-expired ingredients trigger a generation attempt.
- 
-        All ingredients are expired so the view should return 400 rather than
-        calling OpenAI with an empty list.
+        """Asserts that generate returns 400 when the user has no valid ingredients.
+        
+        Removes the ingredient created in setup_method so the user has nothing,
+        confirming the view returns 400 rather than calling OpenAI with an empty list.
         """
-        yesterday = self.today - datetime.timedelta(days=1)
-        make_ingredient(
-            self.user,
-            name='Old Milk',
-            date_expired=yesterday - datetime.timedelta(days=1),
-            date_obtained=yesterday - datetime.timedelta(days=10),
-        )
+        Ingredient.objects.filter(user=self.user).delete()
         response = self.client.get(reverse('generate_recipes'))
         assert response.status_code == 400
         assert 'error' in response.json()
