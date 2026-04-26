@@ -155,122 +155,122 @@
 			</div>
 		</div>
 
-      <!-- Recipes -->
-<div class="panel expandable" id="recipes-panel">
-    <div class="panel-header">
-        <h2>Recipes</h2>
-        <div class="recipe-header-actions">
-            <button class="toggle-btn" type="button" onclick="togglePanel('recipes-panel', this)">
-                Expand
-            </button>
-        </div>
-    </div>
+      	<!-- Recipes -->
+		<div class="panel expandable" id="recipes-panel">
+			<div class="panel-header">
+				<h2>Recipes</h2>
+				<div class="recipe-header-actions">
+					<button class="toggle-btn" type="button" onclick="togglePanel('recipes-panel', this)">
+						Expand
+					</button>
+				</div>
+			</div>
 
-    <div class="panel-body">
-		<div id="search-container">
-			<input type="text" id="search-bar-recipe" class="search-bar" placeholder="Search Recipes" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchRecipes('search-bar-recipe','#recipes-panel')">
+			<div class="panel-body">
+				<div id="search-container">
+					<input type="text" id="search-bar-recipe" class="search-bar" placeholder="Search Recipes" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchRecipes('search-bar-recipe','#recipes-panel')">
+				</div>
+				{% if saved_recipes %}
+					{% for recipe in saved_recipes %}
+					<div class="recipe-card">
+						<div class="recipe-card-collapsed">
+							<span class="recipe-title">{{ recipe.name }}</span>
+							<span class="recipe-meta">{{ recipe.prep_time }} min</span>
+							<button class="toggle-btn" type="button" onclick="toggleRecipeCard(this)">Expand</button>
+						</div>
+						<p class="recipe-description">{{ recipe.description }}</p>
+						<div class="recipe-card-expanded" style="display:none;">
+							<p class="recipe-ingredients"><strong>Ingredients:</strong> {{ recipe.ingredients_used }}</p>
+							<ol class="recipe-steps">
+								{% for step in recipe.steps.splitlines %}
+									<li>{{ step }}</li>
+								{% endfor %}
+							</ol>
+						</div>
+					</div>
+					{% endfor %}
+				{% else %}
+					<p>No saved recipes yet.</p>
+				{% endif %}
+			</div>
 		</div>
-		{% if saved_recipes %}
-			{% for recipe in saved_recipes %}
-			<div class="recipe-card">
-				<div class="recipe-card-collapsed">
-					<span class="recipe-title">{{ recipe.name }}</span>
-					<span class="recipe-meta">{{ recipe.prep_time }} min</span>
-					<button class="toggle-btn" type="button" onclick="toggleRecipeCard(this)">Expand</button>
-				</div>
-				<p class="recipe-description">{{ recipe.description }}</p>
-				<div class="recipe-card-expanded" style="display:none;">
-					<p class="recipe-ingredients"><strong>Ingredients:</strong> {{ recipe.ingredients_used }}</p>
-					<ol class="recipe-steps">
-						{% for step in recipe.steps.splitlines %}
-							<li>{{ step }}</li>
-						{% endfor %}
-					</ol>
-				</div>
-			</div>
-			{% endfor %}
-		{% else %}
-			<p>No saved recipes yet.</p>
-		{% endif %}
-	</div>
-</div>
 
-      <!-- Notifications -->
-      <div class="panel expandable" id="notifications-panel">
-	      <div class="panel-header">
-		      <h2>Notifications</h2>
-		      <button class="toggle-btn" type="button" onclick="togglePanel('notifications-panel', this)">
-			      Expand
-		      </button>
-	      </div>
-
-	      <div class="panel-body">
-			<div id="search-container">
-				<input type="text" id="search-bar-expiring" class="search-bar" placeholder="Search Ingredients" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchIngredients('search-bar-expiring','#notifications-panel')">
+		<!-- Notifications -->
+		<div class="panel expandable" id="notifications-panel">
+			<div class="panel-header">
+				<h2>Notifications</h2>
+				<button class="toggle-btn" type="button" onclick="togglePanel('notifications-panel', this)">
+					Expand
+				</button>
 			</div>
 
-			<div class="expiring-section-label"><i class="fa fa-calendar-times expired-icon" title="Expired"></i> Expired</div>
-			<ul id="expired-list" class="expired-list list-to-sort">
-				{% for item in items %}
-					{% if item.minutes_remaining <= 0 %}
-					<li data-ingredient-id="{{ item.id }}" 
-						data-name="{{ item.name }}"
-						data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
-						data-food-group="{{ item.food_group }}" 
-						data-unit-measurement="{{ item.unit_measurement }}" 
-						data-quantity="{{ item.quantity }}" 
-						data-expiration="{{ item.date_expired|date:'Y-m-d' }}"
-					>
-						<div class="expired-info">
-							<span class="ingredient-name ingredient-label">{{ item.name }}</span>
-							<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
-						</div>
-						<div class="item-actions">
-							<button type="button" onclick="editIngredient(this)">Edit</button>
-							<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
-								{% csrf_token %}
-								<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
-									Delete
-								</button>
-							</form>
-				      	</div>
-					</li>
-					{% endif %}					
-				{% endfor %}
-			</ul>
+			<div class="panel-body">
+				<div id="search-container">
+					<input type="text" id="search-bar-expiring" class="search-bar" placeholder="Search Ingredients" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchIngredients('search-bar-expiring','#notifications-panel')">
+				</div>
 
-			<div class="expiring-section-label"><i class="fa fa-exclamation-triangle expires-soon-icon" title="Expiring Soon"></i> Expires Soon</div>
-			<ul id="expiring-soon-list" class="expiring-soon-list list-to-sort">
-				{% for item in items %}
-					{% if item.minutes_remaining <= 4320 and item.minutes_remaining > 0 %}
-					<li data-ingredient-id="{{ item.id }}" 
-						data-name="{{ item.name }}"
-						data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
-						data-food-group="{{ item.food_group }}" 
-						data-unit-measurement="{{ item.unit_measurement }}" 
-						data-quantity="{{ item.quantity }}" 
-						data-expiration="{{ item.date_expired|date:'Y-m-d' }}"
-					>
-						<div class="expiring-info">
-							<span class="ingredient-name ingredient-label">{{ item.name }}</span>
-							<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
-						</div>
-						<div class="item-actions">
-					      	<button type="button" onclick="editIngredient(this)">Edit</button>
-							<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
-								{% csrf_token %}
-								<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
-									Delete
-								</button>
-							</form>
-				      	</div>
-					</li>
-					{% endif %}					
-				{% endfor %}
-			</ul>
+				<div class="expiring-section-label"><i class="fa fa-calendar-times expired-icon" title="Expired"></i> Expired</div>
+				<ul id="expired-list" class="expired-list list-to-sort">
+					{% for item in items %}
+						{% if item.minutes_remaining <= 0 %}
+						<li data-ingredient-id="{{ item.id }}" 
+							data-name="{{ item.name }}"
+							data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
+							data-food-group="{{ item.food_group }}" 
+							data-unit-measurement="{{ item.unit_measurement }}" 
+							data-quantity="{{ item.quantity }}" 
+							data-expiration="{{ item.date_expired|date:'Y-m-d' }}"
+						>
+							<div class="expired-info">
+								<span class="ingredient-name ingredient-label">{{ item.name }}</span>
+								<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
+							</div>
+							<div class="item-actions">
+								<button type="button" onclick="editIngredient(this)">Edit</button>
+								<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+									{% csrf_token %}
+									<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
+										Delete
+									</button>
+								</form>
+							</div>
+						</li>
+						{% endif %}					
+					{% endfor %}
+				</ul>
 
-	      </div>
-      </div>
+				<div class="expiring-section-label"><i class="fa fa-exclamation-triangle expires-soon-icon" title="Expiring Soon"></i> Expires Soon</div>
+				<ul id="expiring-soon-list" class="expiring-soon-list list-to-sort">
+					{% for item in items %}
+						{% if item.minutes_remaining <= 4320 and item.minutes_remaining > 0 %}
+						<li data-ingredient-id="{{ item.id }}" 
+							data-name="{{ item.name }}"
+							data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
+							data-food-group="{{ item.food_group }}" 
+							data-unit-measurement="{{ item.unit_measurement }}" 
+							data-quantity="{{ item.quantity }}" 
+							data-expiration="{{ item.date_expired|date:'Y-m-d' }}"
+						>
+							<div class="expiring-info">
+								<span class="ingredient-name ingredient-label">{{ item.name }}</span>
+								<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
+							</div>
+							<div class="item-actions">
+								<button type="button" onclick="editIngredient(this)">Edit</button>
+								<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+									{% csrf_token %}
+									<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
+										Delete
+									</button>
+								</form>
+							</div>
+						</li>
+						{% endif %}					
+					{% endfor %}
+				</ul>
+
+			</div>
+		</div>
     </section>
 
     <section class="panel-wide">
