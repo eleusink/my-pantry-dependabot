@@ -19,7 +19,7 @@
 				</button>
 			</div>
 
-				<div class="panel-body">
+			<div class="panel-body">
 				<!-- Barcode Scanner UI -->
 				<div id="barcode-scanner-container" style="margin-bottom: 20px; text-align: center;">
 					<div style="margin-bottom: 10px;">
@@ -109,7 +109,7 @@
 				</form>
 
 				<div id="search-container">
-					<input type="text" id="search-bar-inventory" class="search-bar" placeholder="Search Ingredients" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchExpiredIngredients('search-bar-inventory','#ingredients-panel')">
+					<input type="text" id="search-bar-inventory" class="search-bar" placeholder="Search Ingredients" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchIngredients('search-bar-inventory','#ingredients-panel')">
 				</div>
 
 				<ul id="ingredient-list" class="ingredient-list list-to-sort">
@@ -167,6 +167,9 @@
     </div>
 
     <div class="panel-body">
+		<div id="search-container">
+			<input type="text" id="search-bar-recipe" class="search-bar" placeholder="Search Recipes" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchRecipes('search-bar-recipe','#recipes-panel')">
+		</div>
 		{% if saved_recipes %}
 			{% for recipe in saved_recipes %}
 			<div class="recipe-card">
@@ -203,7 +206,7 @@
 
 	      <div class="panel-body">
 			<div id="search-container">
-				<input type="text" id="search-bar-expiring" class="search-bar" placeholder="Search Ingredients" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchExpiredIngredients('search-bar-expiring','#notifications-panel')">
+				<input type="text" id="search-bar-expiring" class="search-bar" placeholder="Search Ingredients" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchIngredients('search-bar-expiring','#notifications-panel')">
 			</div>
 
 			<div class="expiring-section-label"><i class="fa fa-calendar-times expired-icon" title="Expired"></i> Expired</div>
@@ -289,19 +292,32 @@
 
 {# Script is used to accurately replicate the correct fields for each item and to correctly edit or delete each item.  #}
 <script>
-	function searchExpiredIngredients(searchBarId, containerClass) {
-		console.log('Search called with:', searchBarId, containerClass);
+	function searchRecipes(searchString, panelSelector){
+		const query = document.getElementById(searchString).value.toLowerCase();
+		const panel = document.querySelector(panelSelector);
+		if (!panel) return;
+
+		const cards = panel.querySelectorAll('.recipe-card');
+		cards.forEach(card => {
+			const title = card.querySelector('.recipe-title').textContent.toLowerCase();
+			
+			if (title.includes(query)) {
+				card.style.display = '';
+			} else {
+				card.style.display = 'none';
+			}
+		})
+	}
+
+	function searchIngredients(searchBarId, containerClass) {
 		const searchString = document.getElementById(searchBarId).value.toLowerCase();
 		const lists = document.querySelectorAll(containerClass + ' .list-to-sort');
-		console.log('Search string:', searchString, ", Found lists:", lists.length);
 		
 		lists.forEach(list => {
 			const items = list.getElementsByTagName('li');
-			console.log('Items in list:', items.length);
 
 			for (let i = 0; i < items.length; i++) {
 				const itemName = items[i].dataset.name.toLowerCase();
-				console.log('Checking item:', itemName);
 				if (itemName.includes(searchString) || searchString.length === 0) {
 					items[i].style.display = "";
 				} else {
