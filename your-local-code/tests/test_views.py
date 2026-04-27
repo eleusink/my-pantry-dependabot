@@ -27,7 +27,7 @@ def make_user(username='testuser', password='password123', email='test@example.c
  
 def make_ingredient(user, **kwargs):
     """Return a saved Ingredient with safe future dates by default."""
-    today = timezone.now().date()
+    today = timezone.localdate()
     defaults = dict(
         name='Milk',
         quantity=Decimal('2.00'),
@@ -92,7 +92,7 @@ class TestInventoryViews:
         self.client = Client()
         self.user = make_user()
         self.client.force_login(self.user)
-        self.today = timezone.now().date()
+        self.today = timezone.localdate()
         self.tomorrow = self.today + datetime.timedelta(days=1)
         self.yesterday = self.today - datetime.timedelta(days=1)
         self.item = make_ingredient(self.user)
@@ -353,7 +353,7 @@ class TestInventoryForms:
         self.client = Client()
         self.user = make_user(username='testuser2', email='test2@example.com')
         self.client.force_login(self.user)
-        self.today = timezone.now().date()
+        self.today = timezone.localdate()
         self.tomorrow = self.today + datetime.timedelta(days=1)
         self.yesterday = self.today - datetime.timedelta(days=1)
         self.item = make_ingredient(self.user)
@@ -565,7 +565,7 @@ class TestBulkUploadViews:
         self.client = Client()
         self.user = make_user(username='bulkuser', email='bulk@example.com')
         self.client.force_login(self.user)
-        self.today = timezone.now().date()
+        self.today = timezone.localdate()
         self.tomorrow = self.today + datetime.timedelta(days=1)
 
     @pytest.fixture

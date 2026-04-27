@@ -258,7 +258,8 @@ def product_info_api(request) -> Response:
 @login_required
 def generate_recipes(request):
     import datetime
-    today = datetime.date.today()
+    from django.utils import timezone
+    today = timezone.localdate()
     soon = today + datetime.timedelta(days=3)
 
     qs = Ingredient.objects.filter(user=request.user).order_by('date_expired')
