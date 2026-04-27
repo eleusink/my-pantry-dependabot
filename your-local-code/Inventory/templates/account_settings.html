@@ -16,4 +16,16 @@
 		<p class="account-link">
 			<a href="{% url 'password_change' %}">Change Password</a>
 		</p>
+		<hr>
+		<div class="delete-account-section">
+			<h3>Delete Account</h3>
+
+			<p class="delete-warning">
+				This will permanently delete your account and all of your data. This cannot be undone.
+			</p>
+
+			<form action="{% url 'delete_account' %}" method="get">
+				<button type="submit">Delete My Account</button>
+			</form>
+		</div>
 {% endblock %}
