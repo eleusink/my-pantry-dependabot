@@ -139,6 +139,42 @@ h2{ margin: 0; }
 	cursor: pointer;
 }
 
+/* width */
+.panel::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* Track */
+.panel::-webkit-scrollbar-track {
+  background: transparents;
+  border-radius: 9px;
+}
+
+/* Scroll rectangle */
+.panel::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+/* Handle on hover */
+.panel::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Arrow buttons */
+.panel::-webkit-scrollbar-button {
+    background: transparent; /* Background color of the arrow buttons */
+    height: 15px; /* Height of the arrow buttons */
+    border-radius: 10px; /* Round corners of the buttons */
+}
+
+/* Arrow button on hover */
+.panel::-webkit-scrollbar-button:hover {
+    background: transparent; /* Change color on hover */
+}
+
 /* ================= ABOUT PAGE ================= */
 
 .about-section{
