@@ -11,6 +11,9 @@ urlpatterns = [
     # signup page
     path("signup/", views.signup, name="signup"),
 
+    # remove account
+    path("account/delete/", views.delete_account, name="delete_account"),
+
     # account settings page (Edit settings)
     path("account/", views.account_settings, name="account_settings"),
 

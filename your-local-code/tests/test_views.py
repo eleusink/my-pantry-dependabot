@@ -553,6 +553,40 @@ class TestAboutView:
 
 
 # ---------------------------------------------------------------------------
+# Delete views tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestDeleteAccountView:
+    def setup_method(self):
+        self.client = Client()
+        self.user = make_user(username="deleteuser", email="delete@example.com")
+        self.client.force_login(self.user)
+        make_ingredient(self.user, name="Milk")
+
+    def test_delete_account_removes_user_and_data(self):
+        before_users = User.objects.count()
+        before_items = Ingredient.objects.count()
+
+        response = self.client.post(reverse("delete_account"))
+
+        assert response.status_code == 302
+        assert response.url == reverse("login")
+        assert User.objects.count() == before_users - 1
+        assert Ingredient.objects.count() == before_items - 1
+
+    def test_get_delete_account_page(self):
+        response = self.client.get(reverse("delete_account"))
+        assert response.status_code == 200
+
+    def test_delete_account_requires_login(self):
+        self.client.logout()
+        response = self.client.get(reverse("delete_account"))
+        assert response.status_code == 302
+        assert "/accounts/login/" in response.url
+
+
+# ---------------------------------------------------------------------------
 # Bulk Upload Tests
 # ---------------------------------------------------------------------------
 
@@ -697,3 +731,7 @@ class TestBulkUploadViews:
         assert Ingredient.objects.count() == before_count
         messages = list(response.context['messages'])
         assert any('contain invalid data' in str(m) for m in messages)
+
+
+
+

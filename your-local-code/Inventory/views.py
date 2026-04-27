@@ -10,7 +10,7 @@ from .utils import fetch_product_info, normalize_unit, normalize_group, ProductN
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from .forms import IngredientForm, CustomUserChangeForm, CustomUserCreationForm
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib.auth.forms import UserCreationForm
 from .models import Ingredient, Recipe
 import json
@@ -81,6 +81,16 @@ def signup(request):
         form = CustomUserCreationForm()
         
     return render(request, "registration/signup.html", {"form": form})
+
+@login_required
+def delete_account(request):
+    if request.method == "POST":
+        user = request.user
+        logout(request)
+        user.delete()
+        return redirect("login")
+
+    return render(request, "delete_account.html")
 
 
 def about(request):
