@@ -566,7 +566,7 @@ class TestDeleteAccountView:
 
     def test_delete_account_removes_user_and_data(self):
         before_users = User.objects.count()
-        before_items = Ingredient.object.count()
+        before_items = Ingredient.objects.count()
 
         response = self.client.post(reverse("delete_account"))
 
@@ -574,6 +574,16 @@ class TestDeleteAccountView:
         assert response.url == reverse("login")
         assert User.objects.count() == before_users - 1
         assert Ingredient.objects.count() == before_items - 1
+
+    def test_get_delete_account_page(self):
+        response = self.client.get(reverse("delete_account"))
+        assert response.status_code == 200
+
+    def test_delete_account_requires_login(self):
+        self.client.logout()
+        response = self.client.get(reverse("delete_account"))
+        assert response.status_code == 302
+        assert "/accounts/login/" in response.url
 
 
 # ---------------------------------------------------------------------------
