@@ -367,6 +367,18 @@ def save_recipe(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
+@login_required
+@require_POST
+def delete_recipe(request, recipe_id):
+    try:
+        deleted_count, _ = Recipe.objects.filter(id=recipe_id, user=request.user).delete()
+        if deleted_count > 0:
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'error': 'Recipe not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
 
 @login_required
 def csv_template_download(request):
