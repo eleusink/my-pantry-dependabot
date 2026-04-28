@@ -148,9 +148,12 @@
 											data-quantity="{{ item.quantity }}" 
 											data-expiration="{{ item.date_expired|date:'Y-m-d' }}" 
 											class="
-												{% if item.minutes_remaining <= 0 %}expired-symbol expiring-background
-												{% elif item.minutes_remaining <= 4320 %}expires-soon-symbol expiring-background
-												{% else %}normal-symbol normal-background{% endif %}
+												{% if item.minutes_remaining <= 0 %}
+													expired-symbol expired-background
+												{% elif item.minutes_remaining <= 4320 %}
+													expires-soon-symbol expiring-background
+												{% else %}normal-symbol normal-background
+												{% endif %}
 											">
 
 											<span class="ingredient-info">
@@ -233,71 +236,87 @@
 					<input type="text" id="search-bar-expiring" class="search-bar" placeholder="Search Ingredients" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchIngredients('search-bar-expiring','#notifications-panel')">
 				</div>
 
-				<div class="expiring-section-label"><i class="fa fa-calendar-times expired-icon" title="Expired"></i> Expired</div>
-				<ul id="expired-list" class="expired-list list-to-sort">
-					{% for item in items %}
-						{% if item.minutes_remaining <= 0 %}
-						<li data-ingredient-id="{{ item.id }}" 
-							data-name="{{ item.name }}"
-							data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
-							data-food-group="{{ item.get_food_group_display }}" 
-							data-unit-measurement="{{ item.unit_measurement }}" 
-							data-quantity="{{ item.quantity }}" 
-							data-expiration="{{ item.date_expired|date:'Y-m-d' }}"
-						>
-							<div class="expired-info">
-								<span class="ingredient-name ingredient-label">{{ item.name }}</span>
-								<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
-							</div>
-							<div class="item-actions">
-								<button type="button" onclick="editIngredient(this)">Edit</button>
-								<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
-									{% csrf_token %}
-									<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
-										Delete
-									</button>
-								</form>
-							</div>
-						</li>
-						{% endif %}					
-					{% endfor %}
-				</ul>
+				<!-- Expired Section -->
+				<div class="notification-box expired-box">
+				<div class="expiring-section-label">
+					<i class="fa fa-calendar-times expired-icon" title="Expired"></i> Expired
+				</div>
 
-				<div class="expiring-section-label"><i class="fa fa-exclamation-triangle expires-soon-icon" title="Expiring Soon"></i> Expires Soon</div>
-				<ul id="expiring-soon-list" class="expiring-soon-list list-to-sort">
-					{% for item in items %}
-						{% if item.minutes_remaining <= 4320 and item.minutes_remaining > 0 %}
-						<li data-ingredient-id="{{ item.id }}" 
-							data-name="{{ item.name }}"
-							data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
-							data-food-group="{{ item.get_food_group_display }}" 
-							data-unit-measurement="{{ item.unit_measurement }}" 
-							data-quantity="{{ item.quantity }}" 
-							data-expiration="{{ item.date_expired|date:'Y-m-d' }}"
-						>
-							<div class="expiring-info">
-								<span class="ingredient-name ingredient-label">{{ item.name }}</span>
-								<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
-							</div>
-							<div class="item-actions">
-								<button type="button" onclick="editIngredient(this)">Edit</button>
-								<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
-									{% csrf_token %}
-									<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
-										Delete
-									</button>
-								</form>
-							</div>
-						</li>
-						{% endif %}					
-					{% endfor %}
-				</ul>
+				<div class="notification-list">
+					<ul id="expired-list" class="expired-list list-to-sort">
+						{% for item in items %}
+							{% if item.minutes_remaining <= 0 %}
+							<li data-ingredient-id="{{ item.id }}" 
+								data-name="{{ item.name }}"
+								data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
+								data-food-group="{{ item.get_food_group_display }}" 
+								data-unit-measurement="{{ item.unit_measurement }}" 
+								data-quantity="{{ item.quantity }}" 
+								data-expiration="{{ item.date_expired|date:'Y-m-d' }}">
+							
+								<div class="expired-info">
+									<span class="ingredient-name ingredient-label">{{ item.name }}</span>
+									<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
+								</div>
 
+								<div class="item-actions">
+									<button type="button" onclick="editIngredient(this)">Edit</button>
+									<form id="delete-form-expired-{{ item.id }}" method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+										{% csrf_token %}
+										<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-expired-{{ item.id }}')">
+											Delete
+										</button>
+									</form>
+								</div>
+							</li>
+							{% endif %}
+						{% endfor %}
+					</ul>
+				</div>
+			</div>
+
+			<!-- Expires Soon Section -->
+			<div class="notification-box expiring-box">
+				<div class="expiring-section-label">
+					<i class="fa fa-exclamation-triangle expires-soon-icon" title="Expiring Soon"></i> Expires Soon
+				</div>
+
+				<div class="notification-list">
+					<ul id="expiring-soon-list" class="expiring-soon-list list-to-sort">
+						{% for item in items %}
+							{% if item.minutes_remaining <= 4320 and item.minutes_remaining > 0 %}
+							<li data-ingredient-id="{{ item.id }}" 
+								data-name="{{ item.name }}"
+								data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
+								data-food-group="{{ item.get_food_group_display }}" 
+								data-unit-measurement="{{ item.unit_measurement }}" 
+								data-quantity="{{ item.quantity }}" 
+								data-expiration="{{ item.date_expired|date:'Y-m-d' }}">
+							
+								<div class="expiring-info">
+									<span class="ingredient-name ingredient-label">{{ item.name }}</span>
+									<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
+								</div>
+
+								<div class="item-actions">
+									<button type="button" onclick="editIngredient(this)">Edit</button>
+									<form id="delete-form-expiring-{{ item.id }}" method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+										{% csrf_token %}
+										<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-expiring-{{ item.id }}')">
+											Delete
+										</button>
+									</form>
+								</div>
+							</li>
+							{% endif %}
+						{% endfor %}
+					</ul>
+				</div>
 			</div>
 		</div>
-    </section>
-
-    <section class="panel-wide">
+	</section>
+		<!-- Recipe Suggestions -->
+	<section class="panel-wide">
       <div class="panel wide" id="suggest-recipes-panel">
 	      <div class="panel-header">
 		      <h2>Suggest Recipes</h2>

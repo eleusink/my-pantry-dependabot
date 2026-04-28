@@ -281,8 +281,14 @@ li.expired-symbol::before {
   padding: 3px;
 }
 
+.expired-background {
+  background-color: #fdecea;
+  border-left: 4px solid #e74c3c;
+}
+
 .expiring-background {
-  background-color: rgba(255, 0, 0, 0.1);
+  background-color: #fff8e1;
+  border-left: 4px solid #f39c12;
   border-radius: 7px;
   padding: 3px;
 }
@@ -478,6 +484,43 @@ li.expired-symbol::before {
 /* ================= NOTIFICATIONS DISPLAY ================= */
 .expiring-section-label {
   font-weight: bold;
+  padding: 6px 10px;
+  border-radius: 8px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.expired-box .expiring-section-label {
+  background-color: #fdecea;
+  border-left: 4px solid #e74c3c;
+}
+
+.expiring-box .expiring-section-label {
+  background-color: #fff8e1;
+  border-left: 4px solid #f39c12;
+}
+
+.notification-box {
+	background: white;
+	border: 1px solid #ddd;
+	border-radius: 12px;
+	padding: 1rem;
+	margin-top: 1rem;
+}
+
+.notification-list {
+	max-height: 180px;
+	overflow-y: auto;
+	padding-right: 5px;
+}
+
+.notification-list ul {
+	padding-left: 1.2rem;
+	margin: 0;
+}
+
+.notification-list li {
+	margin-bottom: 10px;
 }
 
 /* ================= RESPONSIVE ================= */
