@@ -8,6 +8,4 @@ patterns over time and makes a single change propagate everywhere.
 BARCODE_REGEX = r'^(\d{8}|\d{12}|\d{13})$'
 
 # Matches ingredient names that contain only ASCII letters and whitespace.
-# TODO: This rejects accented or unicode characters (e.g., "Crème brûlée")
-#       as well as numbers that are part of the name (e.g. "2% Milk").
-NAME_REGEX = r'^[A-Za-z\u00C0-\u017F\s"()$%0-9]+$'
+NAME_REGEX = r'^[A-Za-z\u00C0-\u017F\s"()$%0-9\-]+$'

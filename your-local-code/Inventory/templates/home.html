@@ -269,7 +269,7 @@
       <div class="panel wide" id="suggest-recipes-panel">
 	      <div class="panel-header">
 		      <h2>Suggest Recipes</h2>
-			  <button class="toggle-btn" type="button" onclick="generateRecipes()">
+			  <button class="toggle-btn" type="button" onclick="generateRecipes(this)">
     	        Generate
 	        </button>
 
@@ -290,7 +290,24 @@
     	btn.textContent = panel.classList.contains('expanded') ? 'Collapse' : 'Expand';
 	}
 
-	function generateRecipes() {
+	function generateRecipes(btn) {
+
+		const panel = document.querySelector('#suggest-recipes-panel .panel-body');
+
+
+		if (btn) {
+			btn.disabled = true;
+			btn.textContent = 'Generating...';
+		}
+
+
+		panel.innerHTML = `
+		<div style="text-align: center; padding: 20px;">
+			<i class="fa fa-spinner fa-spin" style="font-size:24px; color:#3498db;"></i>
+			<p style="margin-top:10px; font-style:italic;">Generating...</p>
+		</div>
+	`;
+	
 		fetch("{% url 'generate_recipes' %}")
 			.then(res => res.json())
 			.then(data => {
