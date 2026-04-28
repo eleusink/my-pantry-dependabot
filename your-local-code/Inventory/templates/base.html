@@ -71,10 +71,25 @@
 			document.getElementById('modal').style.display = 'none';
 		}
 
+		function togglePanel(panelId, btn) {
+			const panel = document.getElementById(panelId);
+
+			const isExpanded = panel.classList.contains('expanded');
+
+			if (isExpanded) {
+				panel.classList.remove('expanded');
+				btn.textContent = 'Expand';
+			} else {
+			        panel.classList.add('expanded');
+			        btn.textContent = 'Collapse';
+			}
+		}
+
 		window.onclick = function(event) {
 			const modal = document.getElementById('modal');
 			if (event.target == modal) { closeModal(); }
 		}
+			
 	</script>
 
 	{% block content %}{% endblock %}

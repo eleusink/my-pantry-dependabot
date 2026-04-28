@@ -173,13 +173,15 @@
 				{% if saved_recipes %}
 					{% for recipe in saved_recipes %}
 					<div class="recipe-card">
+						<!-- COLLAPSED VIEW -->
 						<div class="recipe-card-collapsed">
 							<span class="recipe-title">{{ recipe.name }}</span>
 							<span class="recipe-meta">{{ recipe.prep_time }} min</span>
 							<button class="toggle-btn" type="button" onclick="toggleRecipeCard(this)">Expand</button>
 						</div>
-						<p class="recipe-description">{{ recipe.description }}</p>
-						<div class="recipe-card-expanded" style="display:none;">
+						<!-- EXPANDED VIEW -->
+						<div class="recipe-card-expanded" style="display: none;">
+							<p class="recipe-description">{{ recipe.description }}</p>
 							<p class="recipe-ingredients"><strong>Ingredients:</strong> {{ recipe.ingredients_used }}</p>
 							<ol class="recipe-steps">
 								{% for step in recipe.steps.splitlines %}
@@ -377,9 +379,17 @@
 	function toggleRecipeCard(btn) {
 		const card = btn.closest('.recipe-card');
 		const expanded = card.querySelector('.recipe-card-expanded');
-		const isOpen = expanded.style.display !== 'none';
-		expanded.style.display = isOpen ? 'none' : 'block';
-		btn.textContent = isOpen ? 'Expand' : 'Collapse';
+		const isOpen = card.classList.contains('recipe-expanded-full');
+
+		if (isOpen) {
+			expanded.style.display = 'none';
+			card.classList.remove('recipe-expanded-full');
+			btn.textContent = 'Expand';
+		} else {
+			expanded.style.display = 'block';
+			card.classList.add('recipe-expanded-full');
+			btn.textContent = 'Collapse';
+		}
 	}
 
 	function saveRecipe(btn) {
