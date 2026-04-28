@@ -42,7 +42,7 @@ def base_ingredient_data(base_user):
     Returns:
         A dict of valid field values suitable for Ingredient(**data).
     """
-    today = timezone.now().date()
+    today = timezone.localdate()
     return {
         'name': 'Good Milk',
         'quantity': Decimal('1.00'),
@@ -74,7 +74,7 @@ def base_recipe_data(base_user):
 @pytest.mark.django_db
 def test_str_representation(base_user):
     """Asserts that __str__ returns name, quantity, and unit display label."""
-    today = timezone.now().date()
+    today = timezone.localdate()
     item = Ingredient.objects.create(
         name='Oats', quantity=Decimal('3.00'), unit_measurement='CUP',
         food_group='GR', date_obtained=today,
@@ -125,7 +125,7 @@ def test_blank_name_validation(base_ingredient_data):
  
 def test_expiration_date_in_past_validation(base_ingredient_data):
     """Asserts that an expiration date set to yesterday raises ValidationError."""
-    yesterday = timezone.now().date() - datetime.timedelta(days=1)
+    yesterday = timezone.localdate() - datetime.timedelta(days=1)
     base_ingredient_data['date_expired'] = yesterday
     base_ingredient_data['date_obtained'] = yesterday - datetime.timedelta(days=1)
     with pytest.raises(ValidationError):
@@ -134,7 +134,7 @@ def test_expiration_date_in_past_validation(base_ingredient_data):
  
 def test_obtained_after_expired_raises(base_ingredient_data):
     """Asserts that date_obtained later than date_expired raises ValidationError."""
-    today = timezone.now().date()
+    today = timezone.localdate()
     base_ingredient_data['date_obtained'] = today + datetime.timedelta(days=10)
     base_ingredient_data['date_expired'] = today + datetime.timedelta(days=5)
     with pytest.raises(ValidationError):
@@ -143,7 +143,7 @@ def test_obtained_after_expired_raises(base_ingredient_data):
  
 def test_expiry_today_is_valid(base_ingredient_data):
     """Boundary: expiring exactly today should pass validation."""
-    today = timezone.now().date()
+    today = timezone.localdate()
     base_ingredient_data['date_expired'] = today
     base_ingredient_data['date_obtained'] = today - datetime.timedelta(days=1)
     Ingredient(**base_ingredient_data).full_clean()  # should not raise
@@ -166,7 +166,7 @@ def saved_ingredient(db, base_user):
         A persisted Ingredient instance suitable for tests that require a
         real database row (e.g. testing computed properties).
     """
-    today = timezone.now().date()
+    today = timezone.localdate()
     return Ingredient.objects.create(
         name='Good Milk',
         quantity=Decimal('1.00'),
@@ -200,7 +200,7 @@ def test_minutes_remaining(saved_ingredient, days_offset, expected_minutes):
         days_offset: Days relative to today to set as the expiry (can be negative).
         expected_minutes: Expected return value of minutes_remaining.
     """
-    target_date = timezone.now().date() + datetime.timedelta(days=days_offset)
+    target_date = timezone.localdate() + datetime.timedelta(days=days_offset)
     saved_ingredient.date_expired = target_date  # mutate in memory only
  
     assert saved_ingredient.minutes_remaining == expected_minutes
