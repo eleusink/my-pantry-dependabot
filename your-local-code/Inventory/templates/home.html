@@ -9,150 +9,172 @@
     <h1 class="page-title">MyPantry</h1>
 
     <section class="panel-grid">
-		<!-- My Ingredients -->
-		{#My Ingredients container is using drop down option to make th UI more friendly.#}
-		<div class="panel expandable" id="ingredients-panel">
-			<div class="panel-header">
-				<h2>My Ingredients</h2>
-				<button class="toggle-btn" type="button" onclick="togglePanel('ingredients-panel', this)">
-					Expand
-				</button>
-			</div>
+			<!-- Ingredients Column -->
+		<div class="ingredient-column">
 
-			<div class="panel-body">
-				<!-- Barcode Scanner UI -->
-				<div id="barcode-scanner-container" style="margin-bottom: 20px; text-align: center;">
-					<div style="margin-bottom: 10px;">
-						<button type="button" id="start-scan-btn" style="padding: 8px 16px;">📷 Scan Barcode</button>
-						<button type="button" id="toggle-manual-btn" style="padding: 8px 16px; margin-left: 10px;">⌨️ Type Barcode</button>
-						<button type="button" id="bulk-import-btn" style="padding: 8px 16px; margin-left: 10px;" onclick="openBulkImportModal()">📁 Bulk Import</button>
-					</div>
-
-					<div id="manual-entry-container" style="display: none; margin-bottom: 15px;">
-						<input type="text" id="manual-barcode-input" placeholder="Enter barcode manually" required pattern="(\d{8}|\d{12}|\d{13})" inputmode="numeric" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 60%; max-width: 250px;">
-						<button type="button" id="manual-submit-btn" style="padding: 6px 12px; margin-left: 5px;">Search</button>
-					</div>
-
-					<p id="scanner-status" aria-live="polite" style="display: none; color: #555; font-style: italic; margin: 5px 0; font-size: 0.9em;"></p>
-					<div id="reader" style="width: 100%; max-width: 400px; margin: 0 auto; display: none; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
+			<!-- Add Ingredients Panel -->
+			<div class="panel ingredient-subpanel" id="add-ingredients-panel">
+				<div class="panel-header">
+					<h2>Add Ingredients</h2>
+					<button class="toggle-btn" type="button" onclick="togglePanel('add-ingredients-panel', this)">
+						Expand
+					</button>
 				</div>
 
-				<form method="POST" class="ingredient-form" id="add-ingredient-form">
-					{% csrf_token %}
-					<div class="add-item-formatting">
-						<div class="add-item-row">
-							<div></div>
-							<input type="text" id="ingredient-name" name="name" placeholder="Item Name" required>
-							<select id="ingredient-food-group" name="food_group" required>
-								<option value="">Select food group</option>
-								<option value="FR">Fruit</option>
-								<option value="VE">Vegetable</option>
-								<option value="GR">Grain</option>
-								<option value="PR">Protein</option>
-								<option value="DA">Dairy</option>
-								<option value="SN">Snack</option>
-								<option value="BE">Beverage</option>
-								<option value="OT">Other</option>
-							</select>
-							<div></div>
+				<div class="panel-body">
+					<!-- Barcode Scanner UI -->
+					<div id="barcode-scanner-container" style="margin-bottom: 20px; text-align: center;">
+						<div class="barcode-actions">
+							<button type="button" id="start-scan-btn">
+								<span class="icon">📷</span>
+								<span class="label">Scan</span>
+							</button>
+
+							<button type="button" id="toggle-manual-btn">
+								<span class="icon">⌨️</span>
+								<span class="label">Type</span>
+							</button>
+
+							<button type="button" id="bulk-import-btn" onclick="openBulkImportModal()">
+								<span class="icon">📁</span>
+								<span class="label">Import</span>
+							</button>
 						</div>
 
-						<div class="add-item-row">
-							<div></div>
-							<input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="0.01" step="0.01" required>
-							<select id="ingredient-unit" name="unit_measurement" required>
-								<option value="">Select unit</option>
-								<option value="A">count</option>
-								<option value="OZ">oz</option>
-								<option value="LB">lb</option>
-								<option value="G">g</option>
-								<option value="KG">kg</option>
-								<option value="ML">ml</option>
-								<option value="L">l</option>
-								<option value="CUP">cup(s)</option>
-								<option value="TBSP">tbsp</option>
-								<option value="TSP">tsp</option>
-								<option value="BX">box(es)</option>
-								<option value="BAGS">bag(s)</option>
-								<option value="BTL">bottle(s)</option>
-								<option value="CAN">can(s)</option>
-								<option value="CRT">carton(s)</option>
-							</select>
-							<div></div>
+						<div id="manual-entry-container" style="display: none; margin-bottom: 15px;">
+							<input type="text" id="manual-barcode-input" placeholder="Enter barcode manually" required pattern="(\d{8}|\d{12}|\d{13})" inputmode="numeric" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 60%; max-width: 250px;">
+							<button type="button" id="manual-submit-btn" style="padding: 6px 12px; margin-left: 5px;">Search</button>
 						</div>
 
-						<div class="add-item-row">
-							<div></div>
-							<label class="add-item-label" for="ingredient-obtained">Date Obtained:</label>
-							<input type="date" id="ingredient-obtained" name="date_obtained" value="{% now 'Y-m-d' %}" required>
-							<div></div>
-						</div>
-
-						<div class="add-item-row">
-							<div></div>
-							<label class="add-item-label" for="ingredient-expiration">Expiration Date:</label>
-							<input type="date" id="ingredient-expiration" name="date_expired" onchange="validateExpirationDate(this)" required>
-							<div></div>
-						</div>
-							
-						<script>
-							document.addEventListener('DOMContentLoaded', function() {
-								const today = new Date().toISOString().split('T')[0];
-								document.getElementById('ingredient-obtained').value = today;
-							});
-						</script>
-
-						<div class="add-item-button">
-							<button type="submit">Add Item</button>
-						</div>
+						<p id="scanner-status" aria-live="polite" style="display: none; color: #555; font-style: italic; margin: 5px 0; font-size: 0.9em;"></p>
+						<div id="reader" style="width: 100%; max-width: 400px; margin: 0 auto; display: none; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
 					</div>
-				</form>
 
-				<div id="search-container">
-					<input type="text" id="search-bar-inventory" class="search-bar" placeholder="Search Ingredients" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchIngredients('search-bar-inventory','#ingredients-panel')">
+					<form method="POST" class="ingredient-form" id="add-ingredient-form">
+						{% csrf_token %}
+						<div class="add-item-formatting">
+							<div class="add-item-row">
+								<div></div>
+								<input type="text" id="ingredient-name" name="name" placeholder="Item Name" required>
+								<select id="ingredient-food-group" name="food_group" required>
+									<option value="">Select food group</option>
+									<option value="FR">Fruit</option>
+									<option value="VE">Vegetable</option>
+									<option value="GR">Grain</option>
+									<option value="PR">Protein</option>
+									<option value="DA">Dairy</option>
+									<option value="SN">Snack</option>
+									<option value="BE">Beverage</option>
+									<option value="OT">Other</option>
+								</select>
+								<div></div>
+							</div>
+
+							<div class="add-item-row">
+								<div></div>
+								<input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="0.01" step="0.01" required>
+								<select id="ingredient-unit" name="unit_measurement" required>
+									<option value="">Select unit</option>
+									<option value="A">count</option>
+									<option value="OZ">oz</option>
+									<option value="LB">lb</option>
+									<option value="G">g</option>
+									<option value="KG">kg</option>
+									<option value="ML">ml</option>
+									<option value="L">l</option>
+									<option value="CUP">cup(s)</option>
+									<option value="TBSP">tbsp</option>
+									<option value="TSP">tsp</option>
+									<option value="BX">box(es)</option>
+									<option value="BAGS">bag(s)</option>
+									<option value="BTL">bottle(s)</option>
+									<option value="CAN">can(s)</option>
+									<option value="CRT">carton(s)</option>
+								</select>
+								<div></div>
+							</div>
+
+							<div class="add-item-row">
+								<div></div>
+								<label class="add-item-label" for="ingredient-obtained">Date Obtained:</label>
+								<input type="date" id="ingredient-obtained" name="date_obtained" value="{% now 'Y-m-d' %}" required>
+								<div></div>
+							</div>
+
+							<div class="add-item-row">
+								<div></div>
+								<label class="add-item-label" for="ingredient-expiration">Expiration Date:</label>
+								<input type="date" id="ingredient-expiration" name="date_expired" onchange="validateExpirationDate(this)" required>
+								<div></div>
+							</div>
+
+							<div class="add-item-button">
+								<button type="submit">Add Item</button>
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+
+			<!-- My Ingredients Panel -->
+			<div class="panel ingredient-subpanel" id="ingredients-panel">
+				<div class="panel-header">
+					<h2>My Ingredients</h2>
+					<button class="toggle-btn" type="button" onclick="togglePanel('ingredients-panel', this)">
+						Expand
+					</button>
 				</div>
 
-				<ul id="ingredient-list" class="ingredient-list list-to-sort">
-					{% for group in groups %}
-						<button class="group-label accordian">
-							{{ group }}
-							<i class="fas fa-caret-down icon"></i>
-						</button>
-						<div class="accordian-panel">
-							{% for item in items %}
-							{% if item.get_food_group_display == group %}
-							<li data-ingredient-id="{{ item.id }}" 
-								data-name="{{ item.name }}"
-								data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
-								data-food-group="{{ item.get_food_group_display }}" 
-								data-unit-measurement="{{ item.unit_measurement }}" 
-								data-quantity="{{ item.quantity }}" 
-								data-expiration="{{ item.date_expired|date:'Y-m-d' }}" 
-							class="
-								{% if item.minutes_remaining <= 0 %}expired-symbol expiring-background
-								{% elif item.minutes_remaining <= 4320 %}expires-soon-symbol expiring-background
-								{% else %}normal-symbol normal-background{% endif %}
-							">
-								<!-- class="{% if item.minutes_remaining <= 4320 %}expiring{% else %}normal-item{% endif %}"> -->
-								<span class="ingredient-info">
-									<span class="ingredient-name">{{ item }}</span>
-								</span>
-								<div class="item-actions">
-									<button type="button" onclick="editIngredient(this)">Edit</button>
-									<form id="delete-form-{{ item.id }}" method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
-										{% csrf_token %}
-										<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
-											Delete
-										</button>
-									</form>
-								</div>
-							</li>
-							{% endif %}
-							{% endfor %}
-						</div>
-					{% endfor %}
-				</ul>
+				<div class="panel-body">
+					<div id="search-container">
+						<input type="text" id="search-bar-inventory" class="search-bar" placeholder="Search Ingredients" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchIngredients('search-bar-inventory','#ingredients-panel')">
+					</div>
+
+					<ul id="ingredient-list" class="ingredient-list list-to-sort">
+						{% for group in groups %}
+							<button class="group-label accordian">
+								{{ group }}
+								<i class="fas fa-caret-down icon"></i>
+							</button>
+
+							<div class="accordian-panel">
+								{% for item in items %}
+									{% if item.get_food_group_display == group %}
+										<li data-ingredient-id="{{ item.id }}" 
+											data-name="{{ item.name }}"
+											data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
+											data-food-group="{{ item.get_food_group_display }}" 
+											data-unit-measurement="{{ item.unit_measurement }}" 
+											data-quantity="{{ item.quantity }}" 
+											data-expiration="{{ item.date_expired|date:'Y-m-d' }}" 
+											class="
+												{% if item.minutes_remaining <= 0 %}expired-symbol expiring-background
+												{% elif item.minutes_remaining <= 4320 %}expires-soon-symbol expiring-background
+												{% else %}normal-symbol normal-background{% endif %}
+											">
+
+											<span class="ingredient-info">
+												<span class="ingredient-name">{{ item }}</span>
+											</span>
+
+											<div class="item-actions">
+												<button type="button" onclick="editIngredient(this)">Edit</button>
+												<form id="delete-form-{{ item.id }}" method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+													{% csrf_token %}
+													<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
+														Delete
+													</button>
+												</form>
+											</div>
+										</li>
+									{% endif %}
+								{% endfor %}
+							</div>
+						{% endfor %}
+					</ul>
+				</div>
 			</div>
+
 		</div>
 
       	<!-- Recipes -->
@@ -177,7 +199,7 @@
 						<div class="recipe-card-collapsed">
 							<span class="recipe-title">{{ recipe.name }}</span>
 							<span class="recipe-meta">{{ recipe.prep_time }} min</span>
-							<button class="toggle-btn" type="button" onclick="toggleRecipeCard(this)">Expand</button>
+							<button class="toggle-btn" type="button" onclick="toggleRecipeCard(this)">Open</button>
 						</div>
 						<!-- EXPANDED VIEW -->
 						<div class="recipe-card-expanded" style="display: none;">
@@ -384,11 +406,11 @@
 		if (isOpen) {
 			expanded.style.display = 'none';
 			card.classList.remove('recipe-expanded-full');
-			btn.textContent = 'Expand';
+			btn.textContent = 'Open';
 		} else {
 			expanded.style.display = 'block';
 			card.classList.add('recipe-expanded-full');
-			btn.textContent = 'Collapse';
+			btn.textContent = 'Close';
 		}
 	}
 
