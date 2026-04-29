@@ -10,7 +10,7 @@ from .utils import fetch_product_info, normalize_unit, normalize_group, ProductN
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from .forms import IngredientForm, CustomUserChangeForm, CustomUserCreationForm
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib.auth.forms import UserCreationForm
 from .models import Ingredient, Recipe
 import json
@@ -81,6 +81,16 @@ def signup(request):
         form = CustomUserCreationForm()
         
     return render(request, "registration/signup.html", {"form": form})
+
+@login_required
+def delete_account(request):
+    if request.method == "POST":
+        user = request.user
+        logout(request)
+        user.delete()
+        return redirect("login")
+
+    return render(request, "delete_account.html")
 
 
 def about(request):
@@ -258,7 +268,8 @@ def product_info_api(request) -> Response:
 @login_required
 def generate_recipes(request):
     import datetime
-    today = datetime.date.today()
+    from django.utils import timezone
+    today = timezone.localdate()
     soon = today + datetime.timedelta(days=3)
 
     qs = Ingredient.objects.filter(user=request.user).order_by('date_expired')
@@ -353,6 +364,18 @@ def save_recipe(request):
             tag=data.get('tag', 'Other'),
         )
         return JsonResponse({'success': True, 'id': recipe.id})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+@login_required
+@require_POST
+def delete_recipe(request, recipe_id):
+    try:
+        deleted_count, _ = Recipe.objects.filter(id=recipe_id, user=request.user).delete()
+        if deleted_count > 0:
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'error': 'Recipe not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 

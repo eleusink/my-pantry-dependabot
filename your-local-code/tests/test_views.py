@@ -27,7 +27,7 @@ def make_user(username='testuser', password='password123', email='test@example.c
  
 def make_ingredient(user, **kwargs):
     """Return a saved Ingredient with safe future dates by default."""
-    today = timezone.now().date()
+    today = timezone.localdate()
     defaults = dict(
         name='Milk',
         quantity=Decimal('2.00'),
@@ -92,7 +92,7 @@ class TestInventoryViews:
         self.client = Client()
         self.user = make_user()
         self.client.force_login(self.user)
-        self.today = timezone.now().date()
+        self.today = timezone.localdate()
         self.tomorrow = self.today + datetime.timedelta(days=1)
         self.yesterday = self.today - datetime.timedelta(days=1)
         self.item = make_ingredient(self.user)
@@ -353,7 +353,7 @@ class TestInventoryForms:
         self.client = Client()
         self.user = make_user(username='testuser2', email='test2@example.com')
         self.client.force_login(self.user)
-        self.today = timezone.now().date()
+        self.today = timezone.localdate()
         self.tomorrow = self.today + datetime.timedelta(days=1)
         self.yesterday = self.today - datetime.timedelta(days=1)
         self.item = make_ingredient(self.user)
@@ -553,6 +553,40 @@ class TestAboutView:
 
 
 # ---------------------------------------------------------------------------
+# Delete views tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestDeleteAccountView:
+    def setup_method(self):
+        self.client = Client()
+        self.user = make_user(username="deleteuser", email="delete@example.com")
+        self.client.force_login(self.user)
+        make_ingredient(self.user, name="Milk")
+
+    def test_delete_account_removes_user_and_data(self):
+        before_users = User.objects.count()
+        before_items = Ingredient.objects.count()
+
+        response = self.client.post(reverse("delete_account"))
+
+        assert response.status_code == 302
+        assert response.url == reverse("login")
+        assert User.objects.count() == before_users - 1
+        assert Ingredient.objects.count() == before_items - 1
+
+    def test_get_delete_account_page(self):
+        response = self.client.get(reverse("delete_account"))
+        assert response.status_code == 200
+
+    def test_delete_account_requires_login(self):
+        self.client.logout()
+        response = self.client.get(reverse("delete_account"))
+        assert response.status_code == 302
+        assert "/accounts/login/" in response.url
+
+
+# ---------------------------------------------------------------------------
 # Bulk Upload Tests
 # ---------------------------------------------------------------------------
 
@@ -565,7 +599,7 @@ class TestBulkUploadViews:
         self.client = Client()
         self.user = make_user(username='bulkuser', email='bulk@example.com')
         self.client.force_login(self.user)
-        self.today = timezone.now().date()
+        self.today = timezone.localdate()
         self.tomorrow = self.today + datetime.timedelta(days=1)
 
     @pytest.fixture
@@ -697,3 +731,7 @@ class TestBulkUploadViews:
         assert Ingredient.objects.count() == before_count
         messages = list(response.context['messages'])
         assert any('contain invalid data' in str(m) for m in messages)
+
+
+
+

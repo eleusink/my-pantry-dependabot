@@ -7,7 +7,7 @@ from datetime import timedelta
 
 @when('I upload a valid bulk inventory CSV file')
 def step_impl_upload_csv(context):
-    today = timezone.now().date()
+    today = timezone.localdate()
     tomorrow = today + timedelta(days=1)
     
     csv_content = (
