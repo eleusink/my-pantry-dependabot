@@ -89,7 +89,16 @@ h2{ margin: 0; }
 .panel-grid{
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
+  gap: 20px;
+  align-items: start;
+}
+
+.ingredient-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  min-width: 0;
 }
 
 .panel{
@@ -102,6 +111,8 @@ h2{ margin: 0; }
   transition: all 0.3s ease;
   overflow-y: auto;
   height: 620px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .panel-header{
@@ -113,13 +124,17 @@ h2{ margin: 0; }
 .panel.expanded{
 	position: fixed;
 	top: 100px;
-	left: 5%;
-	width: 90%;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 95%;
+	max-width: 1200px;
 	height: 75vh;
 	z-index: 999;
 	background: white;
 	overflow-y: auto;
 	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+	border-radius: 18px;
+	padding: 2rem;
 }
 
 .panel-wide{
@@ -266,14 +281,44 @@ li.expired-symbol::before {
   padding: 3px;
 }
 
+.expired-background {
+  background-color: #fdecea;
+  border-left: 4px solid #e74c3c;
+}
+
 .expiring-background {
-  background-color: rgba(255, 0, 0, 0.1);
+  background-color: #fff8e1;
+  border-left: 4px solid #f39c12;
   border-radius: 7px;
   padding: 3px;
 }
 
 .group-label {
   font-weight: bold;
+}
+
+.ingredient-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  height: 620px;
+}
+
+.ingredient-column .panel {
+  width: 100%;
+}
+
+.ingredient-subpanel {
+  height: auto;
+  min-height: 0;
+}
+
+#add-ingredients-panel {
+  flex: 0 0 auto;
+}
+
+#ingredients-panel {
+  flex: 1;
 }
 
 /* ================= ADD INGREDIENT FORM DISPLAY ================= */
@@ -300,11 +345,44 @@ li.expired-symbol::before {
   display: contents;
 }
 
+.barcode-actions {
+	display: grid;
+  grid-template-columns: repeat(3, 1fr);
+	gap: 8px;
+	margin-bottom: 10px;
+  margin-top: 5px;
+}
+
+.barcode-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+	padding: 8px 6px;
+  width: 100%;
+	min-width: 0;
+	white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.barcode-actions .icon{
+  font-size:0.9rem;
+  flex-shrink: 0;
+}
+
+.barcode-actions .label {
+  white-space: nowrap;
+}
+
 /* ================= RECIPES ================= */
 .recipe-header-actions {
     display: flex;
     gap: 8px;
     align-items: center;
+}
+
+#search-container {
+	margin-bottom: 15px;
 }
 
 /* ================= RECIPE CARDS ================= */
@@ -321,6 +399,8 @@ li.expired-symbol::before {
     padding: 12px;
     margin-bottom: 10px;
     background: white;
+    transition: all 0.3s ease;
+    max-width: 500px;
 }
 
 .recipe-card-collapsed {
@@ -343,9 +423,15 @@ li.expired-symbol::before {
 }
 
 .recipe-card-expanded {
-    margin-top: 12px;
-    border-top: 1px solid #eee;
-    padding-top: 10px;
+    max-width: 900px; 
+    width: 100%;
+    margin: 20px auto;
+    margin-top: 15px;
+    padding: 20px;
+    background: #fff;
+    border: 2px solid #ff7a00;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+
 }
 
 .recipe-description {
@@ -365,19 +451,76 @@ li.expired-symbol::before {
     color: #444;
     padding-left: 1.2rem;
     margin-bottom: 10px;
+    width: 100%;
+    text-align: left;
+
 }
 
 .recipe-steps li {
-    margin-bottom: 4px;
+    margin-bottom: 8px;
 }
 
 .recipe-save-btn {
     margin-top: 4px;
 }
 
+.recipe-expanded-full {
+    position: fixed;
+    top: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 92%;
+    max-width: 1200px;
+    height: 75vh;
+    z-index: 999;
+    background: white;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    border: 2px solid #222;
+    border-radius: 18px;
+    padding: 2rem;
+}
+
 /* ================= NOTIFICATIONS DISPLAY ================= */
 .expiring-section-label {
   font-weight: bold;
+  padding: 6px 10px;
+  border-radius: 8px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.expired-box .expiring-section-label {
+  background-color: #fdecea;
+  border-left: 4px solid #e74c3c;
+}
+
+.expiring-box .expiring-section-label {
+  background-color: #fff8e1;
+  border-left: 4px solid #f39c12;
+}
+
+.notification-box {
+	background: white;
+	border: 1px solid #ddd;
+	border-radius: 12px;
+	padding: 1rem;
+	margin-top: 1rem;
+}
+
+.notification-list {
+	max-height: 180px;
+	overflow-y: auto;
+	padding-right: 5px;
+}
+
+.notification-list ul {
+	padding-left: 1.2rem;
+	margin: 0;
+}
+
+.notification-list li {
+	margin-bottom: 10px;
 }
 
 /* ================= RESPONSIVE ================= */
@@ -445,8 +588,12 @@ li.expired-symbol::before {
   border-radius: 7px;
   border: 2px solid black;
   box-shadow: 0 4px 16px rgba(255, 112, 0, 0.2);
-  max-width: 400px;
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
   background: white;
+  padding: 20px;
 }
 
 .modal-header {
