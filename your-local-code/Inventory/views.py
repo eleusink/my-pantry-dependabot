@@ -268,7 +268,8 @@ def product_info_api(request) -> Response:
 @login_required
 def generate_recipes(request):
     import datetime
-    today = datetime.date.today()
+    from django.utils import timezone
+    today = timezone.localdate()
     soon = today + datetime.timedelta(days=3)
 
     qs = Ingredient.objects.filter(user=request.user).order_by('date_expired')
@@ -363,6 +364,18 @@ def save_recipe(request):
             tag=data.get('tag', 'Other'),
         )
         return JsonResponse({'success': True, 'id': recipe.id})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+@login_required
+@require_POST
+def delete_recipe(request, recipe_id):
+    try:
+        deleted_count, _ = Recipe.objects.filter(id=recipe_id, user=request.user).delete()
+        if deleted_count > 0:
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'error': 'Recipe not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
