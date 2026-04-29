@@ -46,7 +46,7 @@ jobs:
         run: |
           cd your-local-code
           coverage run --source=Inventory -m pytest
-          coverage run --append --source=Inventory manage.py behave
+          coverage run --append --source=Inventory -m behave
           coverage xml
           coverage report -m --fail-under=80
 
