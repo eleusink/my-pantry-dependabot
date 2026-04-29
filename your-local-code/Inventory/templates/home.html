@@ -177,31 +177,42 @@
 			</div>
 
 			<div class="panel-body">
-				<div id="search-container">
-					<input type="text" id="search-bar-recipe" class="search-bar" placeholder="Search Recipes" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchRecipes('search-bar-recipe','#recipes-panel')">
-				</div>
-				{% if saved_recipes %}
-					{% for recipe in saved_recipes %}
-					<div class="recipe-card">
-						<div class="recipe-card-collapsed">
-							<span class="recipe-title">{{ recipe.name }}</span>
-							<span class="recipe-meta">{{ recipe.prep_time }} min</span>
-							<button class="toggle-btn" type="button" onclick="toggleRecipeCard(this)">Expand</button>
-						</div>
-						<p class="recipe-description">{{ recipe.description }}</p>
-						<div class="recipe-card-expanded" style="display:none;">
-							<p class="recipe-ingredients"><strong>Ingredients:</strong> {{ recipe.ingredients_used }}</p>
-							<ol class="recipe-steps">
-								{% for step in recipe.steps.splitlines %}
-									<li>{{ step }}</li>
-								{% endfor %}
-							</ol>
-						</div>
+				<div class="filter-section">
+					<div id="search-container">
+						<input type="text" id="search-bar-recipe" class="search-bar" placeholder="Search Recipes" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchRecipes('search-bar-recipe','#recipes-panel')">
 					</div>
-					{% endfor %}
-				{% else %}
-					<p>No saved recipes yet.</p>
-				{% endif %}
+					<div class="filter-select-dropdown" style="width:200px;">
+						<select id="sort-dropdown-recipes" onchange="sortRecipes('sort-dropdown-recipes', '#recipes-panel')">
+							<option value="alphabetical">Alphabetical</option>
+							<option value="time">Total Time</option>
+							<option value="ingredient-count">Number of Ingredients</option>
+						</select>
+					</div>
+				</div>
+				<div id="recipes-container">
+					{% if saved_recipes %}
+						{% for recipe in saved_recipes %}
+						<div class="recipe-card">
+							<div class="recipe-card-collapsed">
+								<span class="recipe-title">{{ recipe.name }}</span>
+								<span class="recipe-meta">{{ recipe.prep_time }} min</span>
+								<button class="toggle-btn" type="button" onclick="toggleRecipeCard(this)">Expand</button>
+							</div>
+							<p class="recipe-description">{{ recipe.description }}</p>
+							<div class="recipe-card-expanded" style="display:none;">
+								<p class="recipe-ingredients"><strong>Ingredients:</strong> {{ recipe.ingredients_used }}</p>
+								<ol class="recipe-steps">
+									{% for step in recipe.steps.splitlines %}
+										<li>{{ step }}</li>
+									{% endfor %}
+								</ol>
+							</div>
+						</div>
+						{% endfor %}
+					{% else %}
+						<p>No saved recipes yet.</p>
+					{% endif %}
+				</div>	
 			</div>
 		</div>
 
@@ -312,6 +323,39 @@
 
 {# Script is used to accurately replicate the correct fields for each item and to correctly edit or delete each item.  #}
 <script>
+	function sortRecipes(dropdownId, containerSelector)	{
+		debugger;
+		const dropdown = document.getElementById(dropdownId);
+		const sortBy = dropdown.value;
+		const container = document.getElementById('recipes-container');
+		const recipeCards = Array.from(container.querySelectorAll('.recipe-card'));
+
+		recipeCards.sort((card1, card2) => {
+			let val1, val2;
+
+			switch(sortBy) {
+				case 'alphabetical':
+					val1 = card1.querySelector('.recipe-title').textContent.toLowerCase().trim();
+					val2 = card2.querySelector('.recipe-title').textContent.toLowerCase().trim();
+					return val1.localeCompare(val2);
+				case 'time':
+					val1 = parseInt(card1.querySelector('.recipe-meta').textContent) || 0;
+					val2 = parseInt(card2.querySelector('.recipe-meta').textContent) || 0;
+					return val1 - val2; // Shortest time
+				case 'ingredient-count': 
+					// val1 = parseInt(card1.dataset.ingredientCount || 0);
+					// val2 = parseInt(card2.dataset.ingredientCount || 0);
+					val1 = card1.querySelector('.recipe-ingredients').textContent.split(', ').length;
+					val2 = card2.querySelector('.recipe-ingredients').textContent.split(', ').length;
+					return val2 - val1; // Largest amount first
+				default: 
+					return 0;
+			}
+		});
+
+		container.innerHTML = '';
+		recipeCards.forEach(card => container.appendChild(card));
+	}
 
 	function sortIngredients(dropdownId, containerSelector) {
 		const dropdown = document.getElementById(dropdownId);
@@ -349,7 +393,6 @@
 					val1 = item1.dataset.name.toLowerCase();
 					val2 = item2.dataset.name.toLowerCase();
 					return val1.localeCompare(val2);
-					// return 0;
 				case 'expiration':
 					val1 = new Date(item1.dataset.expiration);
 					val2 = new Date(item2.dataset.expiration);
@@ -374,7 +417,7 @@
 					return 0;
 			}
 		}
-		
+
 		// localStorage.setItem('ingredientSortPrefence', sortBy);
 		const lists = document.querySelectorAll(containerSelector + ' .list-to-sort');
 
@@ -398,53 +441,6 @@
 				items.forEach(item => list.appendChild(item));
 			}
 		});
-		
-		// lists.forEach(list => {
-			// const items = Array.from(list.getElementsByTagName('li'));
-			// console.log('Sorting', items.length, 'items');
-			
-			// // Sort list via value comparison
-			// items.sort((item1, item2) => {
-			// 	let val1, val2;
-
-			// 	switch(sortBy) {
-			// 		case 'alphabetical':
-			// 			val1 = item1.dataset.name.toLowerCase();
-			// 			val2 = item2.dataset.name.toLowerCase();
-			// 			return val1.localeCompare(val2);
-			// 			// return 0;
-			// 		case 'expiration':
-			// 			val1 = new Date(item1.dataset.expiration);
-			// 			val2 = new Date(item2.dataset.expiration);
-			// 			return val1 - val2; // Expires soonest
-			// 		case 'obtained':
-			// 			val1 = new Date(item1.dataset.expiration);
-			// 			val2 = new Date(item2.dataset.expiration);
-			// 			return val2 - val1; // Most recently acquired
-			// 		case 'amount': 
-			// 			const unit1 = item1.dataset.unitMeasurement;
-			// 			const unit2 = item2.dataset.unitMeasurement;
-			// 			const rank1 = UNIT_RANKS[unit1] || 0;
-			// 			const rank2 = UNIT_RANKS[unit2] || 0;
-			// 			console.log('Amount 1:', parseFloat(item1.dataset.quantity), rank1, ", Amount 2:", parseFloat(item2.dataset.quantity), rank2);
-
-			// 			if (rank1 !== rank2) return rank2 - rank1;
-
-			// 			val1 = parseFloat(item1.dataset.quantity) || 0;
-			// 			val2 = parseFloat(item2.dataset.quantity) || 0;
-			// 			return val2 - val1; // Largest amount first
-			// 		default: 
-			// 			return 0;
-			// 	}
-		// 	});
-
-		// 	// Clear list, reappend sorted items
-		// 	list.innerHTML = '';
-		// 	items.forEach(item => {
-		// 		list.appendChild(item);
-		// 	});
-
-		// });
 	}
 
 	function searchRecipes(searchString, panelSelector){
@@ -589,7 +585,6 @@
 	}
 
 	function validateNameCharacters(input) {
-		debugger;
         const name = input.value;
 
         if (!/^[A-Za-z\s]+$/.test(name)) {
@@ -984,7 +979,6 @@
 			}
 
 			accordian.addEventListener('click', function() {
-				debugger;
 				const isOpen = panel.classList.contains('active');
 
 				if (isOpen) {
