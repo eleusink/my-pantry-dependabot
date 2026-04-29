@@ -321,6 +321,33 @@ li.expired-symbol::before {
   flex: 1;
 }
 
+/* ================= FILTER / SEARCH DISPLAY ================= */
+.filter-section {
+  display: flex;
+  align-items: left;
+  gap: 5px;
+  padding-top: 10px;
+}
+
+#search-container {
+  flex: 0 0 120px;
+}
+
+.search-bar {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.filter-select-dropdown {
+  flex: 0 0 120px;
+}
+
+.filter-select-dropdown select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1px;
+}
+
 /* ================= ADD INGREDIENT FORM DISPLAY ================= */
 /* 2 (40/40%) column grid for add ingredient form */
 .add-item-formatting {
