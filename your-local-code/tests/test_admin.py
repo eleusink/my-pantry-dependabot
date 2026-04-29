@@ -20,7 +20,7 @@ User = get_user_model()
 
 
 def make_ingredient(user, **kwargs):
-    today = timezone.now().date()
+    today = timezone.localdate()
     defaults = dict(
         name='Milk',
         quantity='2.00',

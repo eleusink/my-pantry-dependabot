@@ -88,7 +88,7 @@ class Ingredient(models.Model):
         Returns:
             The number of minutes remaining until expiry, or 0 if expired.
         """
-        today = timezone.now().date()
+        today = timezone.localdate()
         if self.date_expired < today:
             return 0
         delta = self.date_expired - today
@@ -115,8 +115,8 @@ class Ingredient(models.Model):
             raise ValidationError("Quantities can't be negative.")
 
         # Cache 'today' once so both checks use the same instant, which also
-        # makes timezone.now() easier to mock in unit tests.
-        today = timezone.now().date()
+        # makes timezone.localdate() easier to mock in unit tests.
+        today = timezone.localdate()
         obtained_date = self.date_obtained or today
 
         if self.date_expired and self.date_expired < today:
@@ -220,7 +220,7 @@ class Recipe(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['-created_at', '-id']
 
     def __str__(self):
         return self.name

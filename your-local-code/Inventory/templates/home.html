@@ -9,263 +9,327 @@
     <h1 class="page-title">MyPantry</h1>
 
     <section class="panel-grid">
-      <!-- My Ingredients -->
-      {#My Ingredients container is using drop down option to make th UI more friendly.#}
-      <div class="panel expandable" id="ingredients-panel">
-	      <div class="panel-header">
-		      <h2>My Ingredients</h2>
-		      <button class="toggle-btn" type="button" onclick="togglePanel('ingredients-panel', this)">
-			      Expand
-		      </button>
-	      </div>
+			<!-- Ingredients Column -->
+		<div class="ingredient-column">
 
-      	      <div class="panel-body">
-			  <!-- Barcode Scanner UI -->
-			  <div id="barcode-scanner-container" style="margin-bottom: 20px; text-align: center;">
-				  <div style="margin-bottom: 10px;">
-					  <button type="button" id="start-scan-btn" style="padding: 8px 16px;">📷 Scan Barcode</button>
-					  <button type="button" id="toggle-manual-btn" style="padding: 8px 16px; margin-left: 10px;">⌨️ Type Barcode</button>
-					  <button type="button" id="bulk-import-btn" style="padding: 8px 16px; margin-left: 10px;" onclick="openBulkImportModal()">📁 Bulk Import</button>
-				  </div>
-
-				  <div id="manual-entry-container" style="display: none; margin-bottom: 15px;">
-					  <input type="text" id="manual-barcode-input" placeholder="Enter barcode manually" required pattern="(\d{8}|\d{12}|\d{13})" inputmode="numeric" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 60%; max-width: 250px;">
-					  <button type="button" id="manual-submit-btn" style="padding: 6px 12px; margin-left: 5px;">Search</button>
-				  </div>
-
-				  <p id="scanner-status" aria-live="polite" style="display: none; color: #555; font-style: italic; margin: 5px 0; font-size: 0.9em;"></p>
-				  <div id="reader" style="width: 100%; max-width: 400px; margin: 0 auto; display: none; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
-			  </div>
-
-		      <form method="POST" class="ingredient-form" id="add-ingredient-form">
-				{% csrf_token %}
-				<div class="add-item-formatting">
-				<div class="add-item-row">
-					<div></div>
-					<input type="text" id="ingredient-name" name="name" placeholder="Item Name" 
-       					onchange="validateNameCharacters(this)" required>
-					<select id="ingredient-food-group" name="food_group" required>
-						<option value="">Select food group</option>
-						<option value="FR">Fruit</option>
-						<option value="VE">Vegetable</option>
-						<option value="GR">Grain</option>
-						<option value="PR">Protein</option>
-						<option value="DA">Dairy</option>
-						<option value="SN">Snack</option>
-						<option value="BE">Beverage</option>
-						<option value="OT">Other</option>
-					</select>
-					<div></div>
-				</div>
-
-				<div class="add-item-row">
-					<div></div>
-					<input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="0.01" step="0.01" required>
-					<select id="ingredient-unit" name="unit_measurement" required>
-						<option value="">Select unit</option>
-						<option value="A">count</option>
-						<option value="OZ">oz</option>
-						<option value="LB">lb</option>
-						<option value="G">g</option>
-						<option value="KG">kg</option>
-						<option value="ML">ml</option>
-						<option value="L">l</option>
-						<option value="CUP">cup(s)</option>
-						<option value="TBSP">tbsp</option>
-						<option value="TSP">tsp</option>
-						<option value="BX">box(es)</option>
-						<option value="BAGS">bag(s)</option>
-						<option value="BTL">bottle(s)</option>
-						<option value="CAN">can(s)</option>
-						<option value="CRT">carton(s)</option>
-					</select>
-					<div></div>
-				</div>
-
-				<div class="add-item-row">
-					<div></div>
-					<label class="add-item-label" for="ingredient-obtained">Date Obtained:</label>
-					<input type="date" id="ingredient-obtained" name="date_obtained" value="{% now 'Y-m-d' %}" required>
-					<div></div>
-				</div>
-
-				<div class="add-item-row">
-					<div></div>
-					<label class="add-item-label" for="ingredient-expiration">Expiration Date:</label>
-					<input type="date" id="ingredient-expiration" name="date_expired" onblur="validateExpirationDate(this)" required>
-					<div></div>
-				</div>
-					
-				<script>
-					document.addEventListener('DOMContentLoaded', function() {
-						const today = new Date().toISOString().split('T')[0];
-						document.getElementById('ingredient-obtained').value = today;
-					});
-				</script>
-
-				<div class="add-item-button">
-					<button type="submit">Add Item</button>
-				</div>
-				</div>
-			</form>
-
-
-		      <ul id="ingredient-list" class="ingredient-list">
-				{% for group in groups %}
-					<button class="group-label accordian">
-						{{ group }}
-						<i class="fas fa-caret-down icon"></i>
+			<!-- Add Ingredients Panel -->
+			<div class="panel ingredient-subpanel" id="add-ingredients-panel">
+				<div class="panel-header">
+					<h2>Add Ingredients</h2>
+					<button class="toggle-btn" type="button" onclick="togglePanel('add-ingredients-panel', this)">
+						Expand
 					</button>
-					<div class="accordian-panel">
-						{% for item in items %}
-						{% if item.get_food_group_display == group %}
-						<li data-ingredient-id="{{ item.id }}" 
-							data-name="{{ item.name }}"
-							data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
-							data-food-group="{{ item.get_food_group_display }}" 
-							data-unit-measurement="{{ item.unit_measurement }}" 
-							data-quantity="{{ item.quantity }}" 
-							data-expiration="{{ item.date_expired|date:'Y-m-d' }}" 
-						class="
-							{% if item.minutes_remaining <= 0 %}expired-symbol expiring-background
-							{% elif item.minutes_remaining <= 4320 %}expires-soon-symbol expiring-background
-							{% else %}normal-symbol normal-background{% endif %}
-						">
-							<!-- class="{% if item.minutes_remaining <= 4320 %}expiring{% else %}normal-item{% endif %}"> -->
-							<span class="ingredient-info">
-								<span class="ingredient-name">{{ item }}</span>
-							</span>
-							<div class="item-actions">
-								<button type="button" onclick="editIngredient(this)">Edit</button>
-								<form id="delete-form-{{ item.id }}" method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
-									{% csrf_token %}
-									<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
-										Delete
-									</button>
-								</form>
-							</div>
-						</li>
-						{% endif %}
-						{% endfor %}
-					</div>
-				{% endfor %}
-		      </ul>
-	      </div>
-      </div>
-
-      <!-- Recipes -->
-<div class="panel expandable" id="recipes-panel">
-    <div class="panel-header">
-        <h2>Recipes</h2>
-        <div class="recipe-header-actions">
-            <button class="toggle-btn" type="button" onclick="togglePanel('recipes-panel', this)">
-                Expand
-            </button>
-        </div>
-    </div>
-
-    <div class="panel-body">
-		{% if saved_recipes %}
-			{% for recipe in saved_recipes %}
-			<div class="recipe-card">
-				<div class="recipe-card-collapsed">
-					<span class="recipe-title">{{ recipe.name }}</span>
-					<span class="recipe-meta">{{ recipe.prep_time }} min</span>
-					<button class="toggle-btn" type="button" onclick="toggleRecipeCard(this)">Expand</button>
 				</div>
-				<p class="recipe-description">{{ recipe.description }}</p>
-				<div class="recipe-card-expanded" style="display:none;">
-					<p class="recipe-ingredients"><strong>Ingredients:</strong> {{ recipe.ingredients_used }}</p>
-					<ol class="recipe-steps">
-						{% for step in recipe.steps.splitlines %}
-							<li>{{ step }}</li>
-						{% endfor %}
-					</ol>
+
+				<div class="panel-body">
+					<!-- Barcode Scanner UI -->
+					<div id="barcode-scanner-container" style="margin-bottom: 20px; text-align: center;">
+						<div class="barcode-actions">
+							<button type="button" id="start-scan-btn">
+								<span class="icon">📷</span>
+								<span class="label">Scan</span>
+							</button>
+
+							<button type="button" id="toggle-manual-btn">
+								<span class="icon">⌨️</span>
+								<span class="label">Type</span>
+							</button>
+
+							<button type="button" id="bulk-import-btn" onclick="openBulkImportModal()">
+								<span class="icon">📁</span>
+								<span class="label">Import</span>
+							</button>
+						</div>
+
+						<div id="manual-entry-container" style="display: none; margin-bottom: 15px;">
+							<input type="text" id="manual-barcode-input" placeholder="Enter barcode manually" required pattern="(\d{8}|\d{12}|\d{13})" inputmode="numeric" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 60%; max-width: 250px;">
+							<button type="button" id="manual-submit-btn" style="padding: 6px 12px; margin-left: 5px;">Search</button>
+						</div>
+
+						<p id="scanner-status" aria-live="polite" style="display: none; color: #555; font-style: italic; margin: 5px 0; font-size: 0.9em;"></p>
+						<div id="reader" style="width: 100%; max-width: 400px; margin: 0 auto; display: none; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
+					</div>
+
+					<form method="POST" class="ingredient-form" id="add-ingredient-form">
+						{% csrf_token %}
+						<div class="add-item-formatting">
+							<div class="add-item-row">
+								<div></div>
+								<input type="text" id="ingredient-name" name="name" placeholder="Item Name" required>
+								<select id="ingredient-food-group" name="food_group" required>
+									<option value="">Select food group</option>
+									<option value="FR">Fruit</option>
+									<option value="VE">Vegetable</option>
+									<option value="GR">Grain</option>
+									<option value="PR">Protein</option>
+									<option value="DA">Dairy</option>
+									<option value="SN">Snack</option>
+									<option value="BE">Beverage</option>
+									<option value="OT">Other</option>
+								</select>
+								<div></div>
+							</div>
+
+							<div class="add-item-row">
+								<div></div>
+								<input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="0.01" step="0.01" required>
+								<select id="ingredient-unit" name="unit_measurement" required>
+									<option value="">Select unit</option>
+									<option value="A">count</option>
+									<option value="OZ">oz</option>
+									<option value="LB">lb</option>
+									<option value="G">g</option>
+									<option value="KG">kg</option>
+									<option value="ML">ml</option>
+									<option value="L">l</option>
+									<option value="CUP">cup(s)</option>
+									<option value="TBSP">tbsp</option>
+									<option value="TSP">tsp</option>
+									<option value="BX">box(es)</option>
+									<option value="BAGS">bag(s)</option>
+									<option value="BTL">bottle(s)</option>
+									<option value="CAN">can(s)</option>
+									<option value="CRT">carton(s)</option>
+								</select>
+								<div></div>
+							</div>
+
+							<div class="add-item-row">
+								<div></div>
+								<label class="add-item-label" for="ingredient-obtained">Date Obtained:</label>
+								<input type="date" id="ingredient-obtained" name="date_obtained" value="{% now 'Y-m-d' %}" required>
+								<div></div>
+							</div>
+
+							<div class="add-item-row">
+								<div></div>
+								<label class="add-item-label" for="ingredient-expiration">Expiration Date:</label>
+								<input type="date" id="ingredient-expiration" name="date_expired" onchange="validateExpirationDate(this)" required>
+								<div></div>
+							</div>
+
+							<div class="add-item-button">
+								<button type="submit">Add Item</button>
+							</div>
+						</div>
+					</form>
 				</div>
 			</div>
-			{% endfor %}
-		{% else %}
-			<p>No saved recipes yet.</p>
-		{% endif %}
-	</div>
-</div>
 
-      <!-- Notifications -->
-      <div class="panel expandable" id="notifications-panel">
-	      <div class="panel-header">
-		      <h2>Notifications</h2>
-		      <button class="toggle-btn" type="button" onclick="togglePanel('notifications-panel', this)">
-			      Expand
-		      </button>
-	      </div>
+			<!-- My Ingredients Panel -->
+			<div class="panel ingredient-subpanel" id="ingredients-panel">
+				<div class="panel-header">
+					<h2>My Ingredients</h2>
+					<button class="toggle-btn" type="button" onclick="togglePanel('ingredients-panel', this)">
+						Expand
+					</button>
+				</div>
 
-	      <div class="panel-body">
+				<div class="panel-body">
+					<div id="search-container">
+						<input type="text" id="search-bar-inventory" class="search-bar" placeholder="Search Ingredients" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchIngredients('search-bar-inventory','#ingredients-panel')">
+					</div>
 
-			<div class="expiring-section-label"><i class="fa fa-calendar-times expired-icon" title="Expired"></i> Expired</div>
-			<ul id="expired-list" class="expired-list">
-				{% for item in items %}
-					{% if item.minutes_remaining <= 0 %}
-					<li data-ingredient-id="{{ item.id }}" 
-						data-name="{{ item.name }}"
-						data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
-						data-food-group="{{ item.food_group }}" 
-						data-unit-measurement="{{ item.unit_measurement }}" 
-						data-quantity="{{ item.quantity }}" 
-						data-expiration="{{ item.date_expired|date:'Y-m-d' }}"
-					>
-						<div class="expired-info">
-							<span class="ingredient-name ingredient-label">{{ item.name }}</span>
-							<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
+					<ul id="ingredient-list" class="ingredient-list list-to-sort">
+						{% for group in groups %}
+							<button class="group-label accordian">
+								{{ group }}
+								<i class="fas fa-caret-down icon"></i>
+							</button>
+
+							<div class="accordian-panel">
+								{% for item in items %}
+									{% if item.get_food_group_display == group %}
+										<li data-ingredient-id="{{ item.id }}" 
+											data-name="{{ item.name }}"
+											data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
+											data-food-group="{{ item.get_food_group_display }}" 
+											data-unit-measurement="{{ item.unit_measurement }}" 
+											data-quantity="{{ item.quantity }}" 
+											data-expiration="{{ item.date_expired|date:'Y-m-d' }}" 
+											class="
+												{% if item.minutes_remaining <= 0 %}
+													expired-symbol expired-background
+												{% elif item.minutes_remaining <= 4320 %}
+													expires-soon-symbol expiring-background
+												{% else %}normal-symbol normal-background
+												{% endif %}
+											">
+
+											<span class="ingredient-info">
+												<span class="ingredient-name">{{ item }}</span>
+											</span>
+
+											<div class="item-actions">
+												<button type="button" onclick="editIngredient(this)">Edit</button>
+												<form id="delete-form-{{ item.id }}" method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+													{% csrf_token %}
+													<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
+														Delete
+													</button>
+												</form>
+											</div>
+										</li>
+									{% endif %}
+								{% endfor %}
+							</div>
+						{% endfor %}
+					</ul>
+				</div>
+			</div>
+
+		</div>
+
+      	<!-- Recipes -->
+		<div class="panel expandable" id="recipes-panel">
+			<div class="panel-header">
+				<h2>Recipes</h2>
+				<div class="recipe-header-actions">
+					<button class="toggle-btn" type="button" onclick="togglePanel('recipes-panel', this)">
+						Expand
+					</button>
+				</div>
+			</div>
+
+			<div class="panel-body">
+				<div id="search-container">
+					<input type="text" id="search-bar-recipe" class="search-bar" placeholder="Search Recipes" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchRecipes('search-bar-recipe','#recipes-panel')">
+				</div>
+				{% if saved_recipes %}
+					{% for recipe in saved_recipes %}
+					<div class="recipe-card">
+						<!-- COLLAPSED VIEW -->
+						<div class="recipe-card-collapsed">
+							<span class="recipe-title">{{ recipe.name }}</span>
+							<span class="recipe-meta">{{ recipe.prep_time }} min</span>
+							<button class="toggle-btn" type="button" onclick="toggleRecipeCard(this)">Open</button>
 						</div>
-						<div class="item-actions">
-							<button type="button" onclick="editIngredient(this)">Edit</button>
-							<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
-								{% csrf_token %}
-								<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
-									Delete
-								</button>
-							</form>
-				      	</div>
-					</li>
-					{% endif %}					
-				{% endfor %}
-			</ul>
-
-			<div class="expiring-section-label"><i class="fa fa-exclamation-triangle expires-soon-icon" title="Expiring Soon"></i> Expires Soon</div>
-			<ul id="expiring-soon-list" class="expiring-soon-list">
-				{% for item in items %}
-					{% if item.minutes_remaining <= 4320 and item.minutes_remaining > 0 %}
-					<li data-ingredient-id="{{ item.id }}" 
-						data-name="{{ item.name }}"
-						data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
-						data-food-group="{{ item.food_group }}" 
-						data-unit-measurement="{{ item.unit_measurement }}" 
-						data-quantity="{{ item.quantity }}" 
-						data-expiration="{{ item.date_expired|date:'Y-m-d' }}"
-					>
-						<div class="expiring-info">
-							<span class="ingredient-name ingredient-label">{{ item.name }}</span>
-							<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
+						<!-- EXPANDED VIEW -->
+						<div class="recipe-card-expanded" style="display: none;">
+							<p class="recipe-description">{{ recipe.description }}</p>
+							<p class="recipe-ingredients"><strong>Ingredients:</strong> {{ recipe.ingredients_used }}</p>
+							<ol class="recipe-steps">
+								{% for step in recipe.steps.splitlines %}
+									<li>{{ step }}</li>
+								{% endfor %}
+							</ol>
+							<button class="toggle-btn" type="button" onclick="deleteSavedRecipe(this, {{ recipe.id }})" style="background-color: #e74c3c; color: white; margin-top: 10px;">
+								Delete Recipe
+							</button>
 						</div>
-						<div class="item-actions">
-					      	<button type="button" onclick="editIngredient(this)">Edit</button>
-							<form method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
-								{% csrf_token %}
-								<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-{{ item.id }}')">
-									Delete
-								</button>
-							</form>
-				      	</div>
-					</li>
-					{% endif %}					
-				{% endfor %}
-			</ul>
+					</div>
+					{% endfor %}
+				{% else %}
+					<p id="no-recipes-placeholder">No saved recipes yet.</p>
+				{% endif %}
+			</div>
+		</div>
 
-	      </div>
-      </div>
-    </section>
+		<!-- Notifications -->
+		<div class="panel expandable" id="notifications-panel">
+			<div class="panel-header">
+				<h2>Notifications</h2>
+				<button class="toggle-btn" type="button" onclick="togglePanel('notifications-panel', this)">
+					Expand
+				</button>
+			</div>
 
-    <section class="panel-wide">
+			<div class="panel-body">
+				<div class="filter-section">
+					<div id="search-container">
+						<input type="text" id="search-bar-expiring" class="search-bar" placeholder="Search Ingredients" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchIngredients('search-bar-expiring','#notifications-panel')">
+					</div>
+					<div class="filter-select-dropdown" style="width:200px;">
+						<select id="sort-dropdown-expiring" onchange="sortIngredients('sort-dropdown-expiring', '#notifications-panel')">
+							<option value="alphabetical">Alphabetical</option>
+							<option value="expiration">Expiration Date</option>
+							<option value="obtained">Date Obtained</option>
+							<option value="amount">Amount in Stock</option>
+						</select>
+					</div>
+				</div>
+
+				<!-- Expired Section -->
+				<div class="notification-box expired-box">
+				<div class="expiring-section-label">
+					<i class="fa fa-calendar-times expired-icon" title="Expired"></i> Expired
+				</div>
+
+				<div class="notification-list">
+					<ul id="expired-list" class="expired-list list-to-sort">
+						{% for item in items %}
+							{% if item.minutes_remaining <= 0 %}
+							<li data-ingredient-id="{{ item.id }}" 
+								data-name="{{ item.name }}"
+								data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
+								data-food-group="{{ item.get_food_group_display }}" 
+								data-unit-measurement="{{ item.unit_measurement }}" 
+								data-quantity="{{ item.quantity }}" 
+								data-expiration="{{ item.date_expired|date:'Y-m-d' }}">
+							
+								<div class="expired-info">
+									<span class="ingredient-name ingredient-label">{{ item.name }}</span>
+									<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
+								</div>
+
+								<div class="item-actions">
+									<button type="button" onclick="editIngredient(this)">Edit</button>
+									<form id="delete-form-expired-{{ item.id }}" method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+										{% csrf_token %}
+										<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-expired-{{ item.id }}')">
+											Delete
+										</button>
+									</form>
+								</div>
+							</li>
+							{% endif %}
+						{% endfor %}
+					</ul>
+				</div>
+			</div>
+
+			<!-- Expires Soon Section -->
+			<div class="notification-box expiring-box">
+				<div class="expiring-section-label">
+					<i class="fa fa-exclamation-triangle expires-soon-icon" title="Expiring Soon"></i> Expires Soon
+				</div>
+
+				<div class="notification-list">
+					<ul id="expiring-soon-list" class="expiring-soon-list list-to-sort">
+						{% for item in items %}
+							{% if item.minutes_remaining <= 4320 and item.minutes_remaining > 0 %}
+							<li data-ingredient-id="{{ item.id }}" 
+								data-name="{{ item.name }}"
+								data-date-obtained="{{ item.date_obtained|date:'Y-m-d' }}" 
+								data-food-group="{{ item.get_food_group_display }}" 
+								data-unit-measurement="{{ item.unit_measurement }}" 
+								data-quantity="{{ item.quantity }}" 
+								data-expiration="{{ item.date_expired|date:'Y-m-d' }}">
+							
+								<div class="expiring-info">
+									<span class="ingredient-name ingredient-label">{{ item.name }}</span>
+									<span class="ingredient-expiration"> ({{ item.date_expired }})</span>
+								</div>
+
+								<div class="item-actions">
+									<button type="button" onclick="editIngredient(this)">Edit</button>
+									<form id="delete-form-expiring-{{ item.id }}" method="POST" action="{% url 'delete_item' item.id %}" style="display:inline;">
+										{% csrf_token %}
+										<button type="button" onclick="confirmDelete('{{ item.name|escapejs }}', 'delete-form-expiring-{{ item.id }}')">
+											Delete
+										</button>
+									</form>
+								</div>
+							</li>
+							{% endif %}
+						{% endfor %}
+					</ul>
+				</div>
+			</div>
+		</div>
+	</section>
+		<!-- Recipe Suggestions -->
+	<section class="panel-wide">
       <div class="panel wide" id="suggest-recipes-panel">
 	      <div class="panel-header">
 		      <h2>Suggest Recipes</h2>
@@ -284,6 +348,176 @@
 
 {# Script is used to accurately replicate the correct fields for each item and to correctly edit or delete each item.  #}
 <script>
+
+	function sortIngredients(dropdownId, containerSelector) {
+		const dropdown = document.getElementById(dropdownId);
+		const sortBy = dropdown.value;
+
+		const UNIT_RANKS = {
+			// Containers:
+			'CRT': 7, //'Carton'
+			'BX': 6, //'Boxes'
+			'BAGS': 6, //'Bags'
+			'BTL': 5, //'Bottles'
+			'CAN': 4, //'Can'
+			'A': 4, //'Amount'
+			'UNT': 4, //'Unit'
+
+			// Volume:
+			'L': 5, //'Liter'
+			'CUP': 4, //'Cup'
+			'TBSP': 3, //'Tablespoon'
+			'TSP': 2, //'Teaspoon'
+			'ML': 1, //'Milliliter'
+
+			// Weight:
+			'KG': 5, //'Kilogram'
+			'LB': 4, //'Pound'
+			'OZ': 2, //'Ounce'
+			'G': 1, //'Gram'
+		}
+
+		function compareItems(item1, item2) {
+			let val1, val2;
+
+			switch(sortBy) {
+				case 'alphabetical':
+					val1 = item1.dataset.name.toLowerCase();
+					val2 = item2.dataset.name.toLowerCase();
+					return val1.localeCompare(val2);
+					// return 0;
+				case 'expiration':
+					val1 = new Date(item1.dataset.expiration);
+					val2 = new Date(item2.dataset.expiration);
+					return val1 - val2; // Expires soonest
+				case 'obtained':
+					val1 = new Date(item1.dataset.expiration);
+					val2 = new Date(item2.dataset.expiration);
+					return val2 - val1; // Most recently acquired
+				case 'amount': 
+					const unit1 = item1.dataset.unitMeasurement;
+					const unit2 = item2.dataset.unitMeasurement;
+					const rank1 = UNIT_RANKS[unit1] || 0;
+					const rank2 = UNIT_RANKS[unit2] || 0;
+					console.log('Amount 1:', parseFloat(item1.dataset.quantity), rank1, ", Amount 2:", parseFloat(item2.dataset.quantity), rank2);
+
+					if (rank1 !== rank2) return rank2 - rank1;
+
+					val1 = parseFloat(item1.dataset.quantity) || 0;
+					val2 = parseFloat(item2.dataset.quantity) || 0;
+					return val2 - val1; // Largest amount first
+				default: 
+					return 0;
+			}
+		}
+		
+		// localStorage.setItem('ingredientSortPrefence', sortBy);
+		const lists = document.querySelectorAll(containerSelector + ' .list-to-sort');
+
+		lists.forEach(list => {
+			const panels = list.querySelectorAll('.accordian-panel');
+
+			// Inventory
+			if (panels.length > 0) {
+				panels.forEach(panel => {
+					const items = Array.from(panel.querySelectorAll('li'));
+					items.sort(compareItems);
+					panel.innerHTML = '';
+					items.forEach(item => panel.appendChild(item));
+				});
+			} 
+			// Notifications
+			else {
+				const items = Array.from(list.querySelectorAll(':scope > li'));
+				items.sort(compareItems);
+				list.innerHTML = '';
+				items.forEach(item => list.appendChild(item));
+			}
+		});
+		
+		// lists.forEach(list => {
+			// const items = Array.from(list.getElementsByTagName('li'));
+			// console.log('Sorting', items.length, 'items');
+			
+			// // Sort list via value comparison
+			// items.sort((item1, item2) => {
+			// 	let val1, val2;
+
+			// 	switch(sortBy) {
+			// 		case 'alphabetical':
+			// 			val1 = item1.dataset.name.toLowerCase();
+			// 			val2 = item2.dataset.name.toLowerCase();
+			// 			return val1.localeCompare(val2);
+			// 			// return 0;
+			// 		case 'expiration':
+			// 			val1 = new Date(item1.dataset.expiration);
+			// 			val2 = new Date(item2.dataset.expiration);
+			// 			return val1 - val2; // Expires soonest
+			// 		case 'obtained':
+			// 			val1 = new Date(item1.dataset.expiration);
+			// 			val2 = new Date(item2.dataset.expiration);
+			// 			return val2 - val1; // Most recently acquired
+			// 		case 'amount': 
+			// 			const unit1 = item1.dataset.unitMeasurement;
+			// 			const unit2 = item2.dataset.unitMeasurement;
+			// 			const rank1 = UNIT_RANKS[unit1] || 0;
+			// 			const rank2 = UNIT_RANKS[unit2] || 0;
+			// 			console.log('Amount 1:', parseFloat(item1.dataset.quantity), rank1, ", Amount 2:", parseFloat(item2.dataset.quantity), rank2);
+
+			// 			if (rank1 !== rank2) return rank2 - rank1;
+
+			// 			val1 = parseFloat(item1.dataset.quantity) || 0;
+			// 			val2 = parseFloat(item2.dataset.quantity) || 0;
+			// 			return val2 - val1; // Largest amount first
+			// 		default: 
+			// 			return 0;
+			// 	}
+		// 	});
+
+		// 	// Clear list, reappend sorted items
+		// 	list.innerHTML = '';
+		// 	items.forEach(item => {
+		// 		list.appendChild(item);
+		// 	});
+
+		// });
+	}
+
+	function searchRecipes(searchString, panelSelector){
+		const query = document.getElementById(searchString).value.toLowerCase();
+		const panel = document.querySelector(panelSelector);
+		if (!panel) return;
+
+		const cards = panel.querySelectorAll('.recipe-card');
+		cards.forEach(card => {
+			const title = card.querySelector('.recipe-title').textContent.toLowerCase();
+			
+			if (title.includes(query)) {
+				card.style.display = '';
+			} else {
+				card.style.display = 'none';
+			}
+		})
+	}
+
+	function searchIngredients(searchBarId, containerClass) {
+		const searchString = document.getElementById(searchBarId).value.toLowerCase();
+		const lists = document.querySelectorAll(containerClass + ' .list-to-sort');
+		
+		lists.forEach(list => {
+			const items = list.getElementsByTagName('li');
+
+			for (let i = 0; i < items.length; i++) {
+				const itemName = items[i].dataset.name.toLowerCase();
+				if (itemName.includes(searchString) || searchString.length === 0) {
+					items[i].style.display = "";
+				} else {
+					items[i].style.display = "none";
+				}
+			}
+		});
+	}
+
 	function togglePanel(panelId, btn) {
     	const panel = document.getElementById(panelId);
     	panel.classList.toggle('expanded');
@@ -351,9 +585,17 @@
 	function toggleRecipeCard(btn) {
 		const card = btn.closest('.recipe-card');
 		const expanded = card.querySelector('.recipe-card-expanded');
-		const isOpen = expanded.style.display !== 'none';
-		expanded.style.display = isOpen ? 'none' : 'block';
-		btn.textContent = isOpen ? 'Expand' : 'Collapse';
+		const isOpen = card.classList.contains('recipe-expanded-full');
+
+		if (isOpen) {
+			expanded.style.display = 'none';
+			card.classList.remove('recipe-expanded-full');
+			btn.textContent = 'Open';
+		} else {
+			expanded.style.display = 'block';
+			card.classList.add('recipe-expanded-full');
+			btn.textContent = 'Close';
+		}
 	}
 
 	function saveRecipe(btn) {
@@ -372,6 +614,7 @@
 			if (data.success) {
 				btn.textContent = '✅ Saved';
 				btn.disabled = true;
+				recipe.id = data.id;
 				addSavedRecipeCard(recipe);
 			} else {
 				alert('Failed to save: ' + (data.error || 'Unknown error'));
@@ -385,7 +628,7 @@
 	function addSavedRecipeCard(recipe) {
 		const panel = document.querySelector('#recipes-panel .panel-body');
 
-		const placeholder = panel.querySelector('p');
+		const placeholder = panel.querySelector('#no-recipes-placeholder');
 		if (placeholder) placeholder.remove();
 
 		const card = document.createElement('div');
@@ -402,9 +645,50 @@
 				<ol class="recipe-steps">
 					${recipe.steps.map(s => `<li>${s}</li>`).join('')}
 				</ol>
+				<button class="toggle-btn" type="button" onclick="deleteSavedRecipe(this, ${recipe.id})" style="background-color: #e74c3c; color: white; margin-top: 10px;">
+					Delete Recipe
+				</button>
 			</div>
 		`;
-		panel.appendChild(card);
+		const searchContainer = panel.querySelector('#search-container');
+		if (searchContainer && searchContainer.nextSibling) {
+			panel.insertBefore(card, searchContainer.nextSibling);
+		} else {
+			panel.appendChild(card);
+		}
+	}
+
+	function deleteSavedRecipe(btn, recipeId) {
+		if (!confirm("Are you sure you want to delete this recipe?")) {
+			return;
+		}
+		
+		fetch(`/api/recipes/delete/${recipeId}/`, {
+			method: 'POST',
+			headers: {
+				'X-CSRFToken': '{{ csrf_token }}',
+			}
+		})
+		.then(res => res.json())
+		.then(data => {
+			if (data.success) {
+				const card = btn.closest('.recipe-card');
+				card.remove();
+				
+				const panel = document.querySelector('#recipes-panel .panel-body');
+				if (panel.querySelectorAll('.recipe-card').length === 0) {
+					const p = document.createElement('p');
+					p.id = 'no-recipes-placeholder';
+					p.textContent = 'No saved recipes yet.';
+					panel.appendChild(p);
+				}
+			} else {
+				alert('Failed to delete: ' + (data.error || 'Unknown error'));
+			}
+		})
+		.catch(err => {
+			alert('Something went wrong deleting the recipe.');
+		});
 	}
 
 	function validateNameCharacters(input) {
@@ -433,7 +717,7 @@
 
 
 	function addIngredient(event) {
-    event.preventDefault();
+    	event.preventDefault();
 
 		const expirationInput = document.getElementById('ingredient-expiration');
 

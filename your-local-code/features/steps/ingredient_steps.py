@@ -14,8 +14,8 @@ def _create_test_ingredient(user, name, quantity="1.00", date_expired=None, date
         user=user,
         name=name,
         quantity=quantity,
-        date_expired=date_expired or (timezone.now().date() + timedelta(days=1)),
-        date_obtained=date_obtained or timezone.now().date().isoformat(),
+        date_expired=date_expired or (timezone.localdate() + timedelta(days=1)),
+        date_obtained=date_obtained or timezone.localdate().isoformat(),
         food_group='OT',
         unit_measurement='A'
     )
@@ -56,7 +56,7 @@ def step_impl_4(context):
 
 @given('I have the following ingredients in my inventory')
 def step_impl_5(context):
-    today = timezone.now().date()
+    today = timezone.localdate()
     for row in context.table:
         _create_test_ingredient(
             user=context.user,
@@ -69,7 +69,7 @@ def step_impl_5(context):
 
 @given('I have {count:d} ingredients in my inventory')
 def step_impl_6(context, count):
-    today = timezone.now().date()
+    today = timezone.localdate()
     future = today + timedelta(days=30)
     letters = string.ascii_uppercase
     
@@ -121,7 +121,7 @@ def step_impl_8(context, date):
 @when('I add an ingredient with name "{name}", quantity "{quantity}", and expiration date "{date}"')
 def step_impl_9(context, name, quantity, date):
     context.ingredient_name = name
-    today = timezone.now().date().isoformat()
+    today = timezone.localdate().isoformat()
 
     # Use the pre-authenticated client
     context.response = context.client.post(reverse('home'), {
