@@ -11,8 +11,10 @@ from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
+from unittest.mock import patch
  
-from Inventory.models import Ingredient
+from Inventory.models import Ingredient, Recipe
+import json
  
 User = get_user_model()
  
@@ -288,7 +290,42 @@ class TestInventoryViews:
             }, follow=True)
         assert response.status_code == 200
         assert any('error' in str(m).lower() for m in response.context['messages'])
- 
+
+    def test_expired_and_expiring_items_in_context(self):
+        expired = make_ingredient(
+            self.user,
+            name="ExpiredMilk",
+            date_expired=self.yesterday
+        )
+
+        expiring = make_ingredient(
+            self.user,
+            name="SoonMilk",
+            date_expired=self.today + datetime.timedelta(days=2)
+        )
+
+        response = self.client.get(reverse('home'))
+        items = response.context['items']
+
+        expired_items = [i for i in items if i.minutes_remaining <= 0]
+        expiring_items = [i for i in items if 0 < i.minutes_remaining <= 4320]
+
+        assert any(i.name == "ExpiredMilk" for i in expired_items)
+        assert any(i.name == "SoonMilk" for i in expiring_items)
+
+
+    def test_minutes_remaining_logic(self):
+        expired = make_ingredient(
+            self.user,
+            date_expired=self.yesterday
+        )
+        assert expired.minutes_remaining == 0
+
+        future = make_ingredient(
+            self.user,
+            date_expired=self.today + datetime.timedelta(days=1)
+        )
+        assert future.minutes_remaining > 0
  
 # ---------------------------------------------------------------------------
 # product_info_api POST and error path tests
@@ -339,7 +376,76 @@ class TestProductInfoAPIView:
         assert response.status_code == 502
         assert 'error' in response.json()
  
- 
+
+# ---------------------------------------------------------------------------
+# Save Recipe / Delete Recipe
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestRecipeViews:
+    def setup_method(self):
+        self.client = Client()
+        self.user = make_user(username='recipeuser')
+        self.client.force_login(self.user)
+
+    def test_save_recipe_success(self):
+        data = {
+            "name": "Test Recipe",
+            "prep_time": 10,
+            "description": "Test",
+            "ingredients_used": ["milk"],
+            "steps": ["step 1"],
+            "tag": "Dinner"
+        }
+
+        response = self.client.post(
+            reverse('save_recipe'),
+            data=json.dumps(data),
+            content_type='application/json'
+        )
+
+        assert response.status_code == 200
+        assert Recipe.objects.count() == 1
+
+    def test_delete_recipe_success(self):
+        recipe = Recipe.objects.create(
+            user=self.user,
+            name="Test",
+            prep_time=10,
+            description="Test",
+            ingredients_used="milk",
+            steps="step 1",
+        )
+
+        response = self.client.post(
+            reverse('delete_recipe', args=[recipe.id])
+        )
+
+        assert response.status_code == 200
+        assert Recipe.objects.count() == 0
+
+    from unittest.mock import patch
+
+    def test_generate_recipes_success(self):
+        make_ingredient(self.user)
+
+        with patch('Inventory.views.OpenAI') as mock_openai:
+            mock_client = mock_openai.return_value
+            mock_client.chat.completions.create.return_value.choices = [
+                type('obj', (object,), {
+                    "message": type('msg', (object,), {
+                        "content": json.dumps([
+                            {"name": "Test Recipe", "prep_time": 10}
+                        ])
+                    })
+                })
+            ]
+
+            response = self.client.get(reverse('generate_recipes'))
+
+        assert response.status_code == 200
+
+
 # ---------------------------------------------------------------------------
 # Form / edit validation tests
 # ---------------------------------------------------------------------------
