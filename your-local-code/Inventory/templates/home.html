@@ -191,27 +191,32 @@
 				</div>
 				<div id="recipes-container">
 					{% if saved_recipes %}
-						{% for recipe in saved_recipes %}
-						<div class="recipe-card">
-							<div class="recipe-card-collapsed">
-								<span class="recipe-title">{{ recipe.name }}</span>
-								<span class="recipe-meta">{{ recipe.prep_time }} min</span>
-								<button class="toggle-btn" type="button" onclick="toggleRecipeCard(this)">Expand</button>
-							</div>
-							<p class="recipe-description">{{ recipe.description }}</p>
-							<div class="recipe-card-expanded" style="display:none;">
-								<p class="recipe-ingredients"><strong>Ingredients:</strong> {{ recipe.ingredients_used }}</p>
-								<ol class="recipe-steps">
-									{% for step in recipe.steps.splitlines %}
-										<li>{{ step }}</li>
-									{% endfor %}
-								</ol>
-							</div>
+					{% for recipe in saved_recipes %}
+					<div class="recipe-card">
+						<!-- COLLAPSED VIEW -->
+						<div class="recipe-card-collapsed">
+							<span class="recipe-title">{{ recipe.name }}</span>
+							<span class="recipe-meta">{{ recipe.prep_time }} min</span>
+							<button class="toggle-btn" type="button" onclick="toggleRecipeCard(this)">Open</button>
 						</div>
-						{% endfor %}
-					{% else %}
-						<p>No saved recipes yet.</p>
-					{% endif %}
+						<!-- EXPANDED VIEW -->
+						<div class="recipe-card-expanded" style="display: none;">
+							<p class="recipe-description">{{ recipe.description }}</p>
+							<p class="recipe-ingredients"><strong>Ingredients:</strong> {{ recipe.ingredients_used }}</p>
+							<ol class="recipe-steps">
+								{% for step in recipe.steps.splitlines %}
+									<li>{{ step }}</li>
+								{% endfor %}
+							</ol>
+							<button class="toggle-btn" type="button" onclick="deleteSavedRecipe(this, {{ recipe.id }})" style="background-color: #e74c3c; color: white; margin-top: 10px;">
+								Delete Recipe
+							</button>
+						</div>
+					</div>
+					{% endfor %}
+				{% else %}
+					<p id="no-recipes-placeholder">No saved recipes yet.</p>
+				{% endif %}
 				</div>	
 			</div>
 		</div>
