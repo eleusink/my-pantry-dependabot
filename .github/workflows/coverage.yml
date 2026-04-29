@@ -45,8 +45,8 @@ jobs:
           DEBUG: true
         run: |
           cd your-local-code
-          coverage run --source=Inventory -m pytest
-          coverage run --append --source=Inventory -m behave
+          coverage erase
+          pytest --cov=Inventory --cov-report=term-missing
           coverage xml
           coverage report -m --fail-under=80
 
