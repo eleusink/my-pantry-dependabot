@@ -330,7 +330,8 @@ li.expired-symbol::before {
 }
 
 #search-container {
-  flex: 0 0 120px;
+  flex: 0 0 50%;
+  max-width: 160px;
 }
 
 .search-bar {
@@ -339,7 +340,8 @@ li.expired-symbol::before {
 }
 
 .filter-select-dropdown {
-  flex: 0 0 120px;
+  flex: 0 0 50%;
+  max-width: 160px;
 }
 
 .filter-select-dropdown select {
