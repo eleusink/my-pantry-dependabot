@@ -892,7 +892,8 @@
 
 		toggleManualBtn.addEventListener('click', function(event) {
 			event.preventDefault();
-			
+			debugger;
+
 			// If scanner is running, tear it down cleanly
 			if (html5QrcodeScanner) {
 				html5QrcodeScanner.clear().then(() => {
@@ -905,7 +906,7 @@
 			if (manualContainer.style.display === 'none') {
 				manualContainer.style.display = 'block';
 				toggleManualBtn.textContent = '✖️ Cancel';
-				startBtn.style.display = 'none'; 
+				// startBtn.style.display = 'none'; 
 				manualInput.focus();
 			} else {
 				manualContainer.style.display = 'none';
@@ -925,8 +926,17 @@
 		});
 
 		startBtn.addEventListener('click', function(event) {
+			debugger;
 			event.preventDefault(); // ensure mobile devices don't interpret as submit
-			if (html5QrcodeScanner) return;
+			// if (html5QrcodeScanner) return;
+			 if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().then(() => {
+                    readerDiv.style.display = 'none';
+                    html5QrcodeScanner = null;
+                    statusText.style.display = 'none';
+					startBtn.textContent = '📷 Scan';
+                }).catch(console.error);
+            }
 			
 			// Close manual entry if open
 			manualContainer.style.display = 'none';
@@ -938,7 +948,8 @@
 			statusText.style.display = 'block';
 			statusText.textContent = "Initializing camera...";
 			statusText.style.color = "#555";
-			startBtn.style.display = 'none';
+			startBtn.textContent = '✖️ Cancel';
+			// toggleManualBtn.textContent = '✖️ Cancel';
 
 			// Initialize the scanner UI
 			html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 150} }, false);
@@ -988,6 +999,11 @@
 					setTimeout(() => { statusText.style.display = 'none'; }, 4000);
 				})
 				.catch(err => {
+					console.log('ERROR CAUGHT:', err.message);
+					console.log('Scanner state:', html5QrcodeScanner);
+					console.log('Manual container display:', manualContainer.style.display);
+					console.log('Start button display:', startBtn.style.display);
+
 					statusText.textContent = `Error: ${err.message}`;
 					statusText.style.color = "red";
 					statusText.dataset.status = "error";  // Stable hook for automated tests
