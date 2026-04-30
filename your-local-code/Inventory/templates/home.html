@@ -628,6 +628,7 @@
 			if (data.success) {
 				btn.textContent = '✅ Saved';
 				btn.disabled = true;
+				recipe.id = data.id;
 				addSavedRecipeCard(recipe);
 			} else {
 				alert('Failed to save: ' + (data.error || 'Unknown error'));
@@ -653,12 +654,25 @@
 				<button class="toggle-btn" type="button" onclick="toggleRecipeCard(this)">Open</button>
 			</div>
 			<p class="recipe-description">${recipe.description}</p>
+			
 			<div class="recipe-card-expanded" style="display:none;">
 				<p class="recipe-ingredients"><strong>Ingredients:</strong> ${recipe.ingredients_used.join(', ')}</p>
 				<ol class="recipe-steps">
 					${recipe.steps.map(s => `<li>${s}</li>`).join('')}
 				</ol>
-				<p class="recipe-delete-note">Refresh the page to delete this saved recipe.</p>
+
+				<button class="delete-recipe-btn"
+					type="button"
+					onclick="confirmDelete('${recipe.name.replace(/'/g, "\\'")}', 'delete-recipe-${recipe.id}')">
+					Delete Recipe
+				</button>
+
+				<form id="delete-recipe-${recipe.id}"
+					method="POST"
+					action="/api/recipes/delete/${recipe.id}/"
+					style="display:none;">
+					<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+				</form>
 			</div>
 		`;
 		panel.appendChild(card);
