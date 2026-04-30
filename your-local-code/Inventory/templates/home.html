@@ -139,7 +139,7 @@
 						</div>
 
 						<div class="filter-select-dropdown" style="width:200px;">
-							<select id="sort-dropdown-inventory" onchange="sortIngredients('sort-dropdown-inventory', '#ingredients-panel')">
+							<select id="sort-dropdown-inventory" data-sort="ingredients" data-container="#ingredients-panel" onchange="sortIngredients(this, '#ingredients-panel')">
 								<option value="alphabetical">Alphabetical</option>
 								<option value="expiration">Expiration Date</option>
 								<option value="obtained">Date Obtained</option>
@@ -216,7 +216,7 @@
 						<input type="text" id="search-bar-recipe" class="search-bar" placeholder="Search Recipes" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchRecipes('search-bar-recipe','#recipes-panel')">
 					</div>
 					<div class="filter-select-dropdown" style="width:200px;">
-						<select id="sort-dropdown-recipes" onchange="sortRecipes('sort-dropdown-recipes', '#recipes-panel')">
+						<select id="sort-dropdown-recipes" data-sort="recipes" data-container="#recipes-panel" onchange="sortRecipes(this, '#recipes-panel')">
 							<option value="alphabetical">Alphabetical</option>
 							<option value="time">Total Time</option>
 							<option value="ingredient-count">Number of Ingredients</option>
@@ -284,8 +284,8 @@
 					</div>
 
 					<div class="filter-select-dropdown" style="width:200px;">
-						<select id="sort-dropdown-expiring"
-							onchange="sortIngredients('sort-dropdown-expiring', '#notifications-panel')">
+						<select id="sort-dropdown-expiring" data-sort="ingredients" data-container="#notifications-panel"
+							onchange="sortIngredients(this, '#notifications-panel')">
 							<option value="alphabetical">Alphabetical</option>
 							<option value="expiration">Expiration Date</option>
 							<option value="obtained">Date Obtained</option>
@@ -396,10 +396,15 @@
 <script>
 	function sortRecipes(dropdownId, containerSelector)	{
 		debugger;
-		const dropdown = document.getElementById(dropdownId);
+		// const dropdown = document.getElementById(dropdownId);
+		const dropdown = typeof dropdownId === 'string'
+			? document.getElementById(dropdownId)
+			: dropdownId;
+
 		const sortBy = dropdown.value;
 		const container = document.getElementById('recipes-container');
 		const recipeCards = Array.from(container.querySelectorAll('.recipe-card'));
+		localStorage.setItem(dropdown.id, sortBy);
 
 		recipeCards.sort((card1, card2) => {
 			let val1, val2;
@@ -414,8 +419,6 @@
 					val2 = parseInt(card2.querySelector('.recipe-meta').textContent) || 0;
 					return val1 - val2; // Shortest time
 				case 'ingredient-count': 
-					// val1 = parseInt(card1.dataset.ingredientCount || 0);
-					// val2 = parseInt(card2.dataset.ingredientCount || 0);
 					val1 = card1.querySelector('.recipe-ingredients').textContent.split(', ').length;
 					val2 = card2.querySelector('.recipe-ingredients').textContent.split(', ').length;
 					return val2 - val1; // Largest amount first
@@ -429,7 +432,10 @@
 	}
 
 	function sortIngredients(dropdownId, containerSelector) {
-		const dropdown = document.getElementById(dropdownId);
+		// const dropdown = document.getElementById(dropdownId);
+		const dropdown = typeof dropdownId === 'string'
+			? document.getElementById(dropdownId)
+			: dropdownId;
 		const sortBy = dropdown.value;
 
 		const UNIT_RANKS = {
@@ -469,15 +475,14 @@
 					val2 = new Date(item2.dataset.expiration);
 					return val1 - val2; // Expires soonest
 				case 'obtained':
-					val1 = new Date(item1.dataset.expiration);
-					val2 = new Date(item2.dataset.expiration);
+					val1 = new Date(item1.dataset.dateObtained);
+					val2 = new Date(item2.dataset.dateObtained);
 					return val2 - val1; // Most recently acquired
 				case 'amount': 
 					const unit1 = item1.dataset.unitMeasurement;
 					const unit2 = item2.dataset.unitMeasurement;
 					const rank1 = UNIT_RANKS[unit1] || 0;
 					const rank2 = UNIT_RANKS[unit2] || 0;
-					console.log('Amount 1:', parseFloat(item1.dataset.quantity), rank1, ", Amount 2:", parseFloat(item2.dataset.quantity), rank2);
 
 					if (rank1 !== rank2) return rank2 - rank1;
 
@@ -489,13 +494,13 @@
 			}
 		}
 
-		// localStorage.setItem('ingredientSortPrefence', sortBy);
+		localStorage.setItem(dropdown.id, sortBy);
 		const lists = document.querySelectorAll(containerSelector + ' .list-to-sort');
 
 		lists.forEach(list => {
 			const panels = list.querySelectorAll('.accordian-panel');
 
-			// Inventory
+			// Inventory Panel
 			if (panels.length > 0) {
 				panels.forEach(panel => {
 					const items = Array.from(panel.querySelectorAll('li'));
@@ -504,7 +509,7 @@
 					items.forEach(item => panel.appendChild(item));
 				});
 			} 
-			// Notifications
+			// Notifications Panel
 			else {
 				const items = Array.from(list.querySelectorAll(':scope > li'));
 				items.sort(compareItems);
@@ -1074,6 +1079,31 @@
 			});
 		});
 
+		document.querySelectorAll('select[id^="sort-dropdown"]').forEach(dropdown => {
+			const saved = localStorage.getItem(dropdown.id);
+
+			if (saved) {
+				dropdown.value = saved;
+
+				// From sort(this, '#specific-panel'), pull out '#specific-panel'
+				// Return [1] element from match array if available (?)
+				// const container = dropdown.getAttribute('onchange').match(/'(#[^']+)'/)?.[1];
+				const container = dropdown.dataset.container;
+				const type = dropdown.dataset.sort;
+				localStorage.setItem(dropdown.id, dropdown.value);
+
+				// Using previously saved dropdown value, resort the list
+				// if (container) {
+				// 	sortIngredients(dropdown, container);
+				// }
+
+				if (type === 'ingredients') {
+					sortIngredients(dropdown, container);
+				} else if (type === 'recipes') {
+					sortRecipes(dropdown, container);
+				}
+			}
+		})
 	});
 </script>
 {% endblock %}
