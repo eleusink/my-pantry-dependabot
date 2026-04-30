@@ -904,12 +904,12 @@
 			
 			if (manualContainer.style.display === 'none') {
 				manualContainer.style.display = 'block';
-				toggleManualBtn.textContent = '✖️ Cancel Keyboard';
+				toggleManualBtn.textContent = '✖️ Cancel';
 				startBtn.style.display = 'none'; 
 				manualInput.focus();
 			} else {
 				manualContainer.style.display = 'none';
-				toggleManualBtn.textContent = '⌨️ Type Barcode';
+				toggleManualBtn.textContent = '⌨️ Type';
 				startBtn.style.display = 'inline-block';
 			}
 		});
@@ -930,7 +930,7 @@
 			
 			// Close manual entry if open
 			manualContainer.style.display = 'none';
-			toggleManualBtn.textContent = '⌨️ Type Barcode';
+			toggleManualBtn.textContent = '⌨️ Type';
 			toggleManualBtn.style.display = 'inline-block';
 
 			readerDiv.style.display = 'block';
