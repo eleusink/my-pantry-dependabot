@@ -36,6 +36,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r your-local-code/requirements.txt
           pip install -r your-local-code/requirements-pytest.txt
+          pip install -r your-local-code/requirements-behave.txt
 
       - name: Run Coverage Check & Generate XML
         env:
@@ -44,8 +45,10 @@ jobs:
           DEBUG: true
         run: |
           cd your-local-code
-          pytest --cov=Inventory --cov-report=xml --cov-fail-under=80 \
-            --cov-report=term-missing
+          coverage erase
+          pytest --cov=Inventory --cov-report=term-missing
+          coverage xml
+          coverage report -m --fail-under=80
 
       - name: Post Coverage Comment
         uses: MishaKav/pytest-coverage-comment@main

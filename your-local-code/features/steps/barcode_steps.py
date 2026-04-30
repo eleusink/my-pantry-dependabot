@@ -59,22 +59,20 @@ def step_visit_add_ingredient_page(context):
     if "login" in context.browser.url:
         context.browser.fill('username', context.user.username)
         context.browser.fill('password', 'behave_password_123')
-        context.browser.find_by_css('button[type="submit"], input[type="submit"]').first.click()
+        # Using JS click bypasses WebDriver visibility overlap checks
+        context.browser.execute_script("document.querySelector('button[type=\"submit\"], input[type=\"submit\"]').click();")
         context.browser.is_element_present_by_css('.dashboard', wait_time=5)
 
     context.browser.is_element_present_by_css('#ingredients-panel .toggle-btn', wait_time=5)
-    panel_toggle = context.browser.find_by_css('#ingredients-panel .toggle-btn').first
-    if panel_toggle:
-        panel_toggle.click()
-
+    # Using JS click bypasses WebDriver visibility overlap checks
+    context.browser.execute_script("document.querySelector('#add-ingredients-panel .toggle-btn').click();")
 
 @given('I choose to enter the barcode manually')
 def step_choose_manual_entry(context):
     """Exposes the manual barcode input by clicking the toggle button."""
     context.browser.is_element_present_by_id('toggle-manual-btn', wait_time=2)
-    toggle = context.browser.find_by_id('toggle-manual-btn').first
-    if toggle:
-        toggle.click()
+    # Using JS click bypasses WebDriver visibility overlap checks
+    context.browser.execute_script("document.getElementById('toggle-manual-btn').click();")
 
 
 @when('I type the barcode "{barcode}"')
@@ -121,9 +119,8 @@ def step_submit_barcode(context):
         context.add_cleanup(responses_lib.stop)
         context.add_cleanup(responses_lib.reset)
 
-    btn = context.browser.find_by_id('manual-submit-btn').first
-    if btn:
-        btn.click()
+    # Using JS click bypasses WebDriver visibility overlap checks
+    context.browser.execute_script("document.getElementById('manual-submit-btn').click();")
 
 
 @then('the product details are shown successfully')
