@@ -372,10 +372,15 @@ def save_recipe(request):
 def delete_recipe(request, recipe_id):
     try:
         deleted_count, _ = Recipe.objects.filter(id=recipe_id, user=request.user).delete()
+
         if deleted_count > 0:
-            return JsonResponse({'success': True})
-        else:
-            return JsonResponse({'error': 'Recipe not found'}, status=404)
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({'success': True})
+
+            return redirect("home")
+
+        return JsonResponse({'error': 'Recipe not found'}, status=404)
+
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
