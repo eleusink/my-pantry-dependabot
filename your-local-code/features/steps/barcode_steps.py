@@ -65,8 +65,7 @@ def step_visit_add_ingredient_page(context):
 
     context.browser.is_element_present_by_css('#ingredients-panel .toggle-btn', wait_time=5)
     # Using JS click bypasses WebDriver visibility overlap checks
-    context.browser.execute_script("document.querySelector('#ingredients-panel .toggle-btn').click();")
-
+    context.browser.execute_script("document.querySelector('#add-ingredients-panel .toggle-btn').click();")
 
 @given('I choose to enter the barcode manually')
 def step_choose_manual_entry(context):
