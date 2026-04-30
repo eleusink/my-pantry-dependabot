@@ -143,8 +143,8 @@ class TestInventoryViews:
         assert Ingredient.objects.count() == before
  
     def test_invalid_add_returns_form_errors(self):
-        """Asserts that an invalid POST re-renders the form with errors."""
-        response = self._post_add(name='Bad1Name')
+        """Asserts that an invalid POST (# in name) re-renders the form with errors."""
+        response = self._post_add(name='#1 Bad Name')
         assert response.status_code == 200
         assert not response.context['form'].is_valid()
  
@@ -485,9 +485,9 @@ class TestInventoryForms:
         assert self.item.quantity == original_quantity
  
     def test_bad_name_does_not_update_data(self):
-        """Asserts that a name containing digits is rejected and the record is unchanged."""
+        """Asserts that a name containing invalid characters (not letters, numbers, $, %, or parenthesis) is rejected and the record is unchanged."""
         original_name = self.item.name
-        self._post_edit(name='5al5a')
+        self._post_edit(name='Salsa?')
         self.item.refresh_from_db()
         assert self.item.name == original_name
  
