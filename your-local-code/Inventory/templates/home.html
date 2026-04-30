@@ -59,7 +59,7 @@
 								<div></div>
 								<input type="text" id="ingredient-name" name="name" placeholder="Item Name" required>
 								<select id="ingredient-food-group" name="food_group" required>
-									<option value="">Select food group</option>
+									<option value="">Food Group</option>
 									<option value="FR">Fruit</option>
 									<option value="VE">Vegetable</option>
 									<option value="GR">Grain</option>
@@ -76,7 +76,7 @@
 								<div></div>
 								<input type="number" id="ingredient-amount" name="quantity" placeholder="Amount" min="0.01" step="0.01" required>
 								<select id="ingredient-unit" name="unit_measurement" required>
-									<option value="">Select unit</option>
+									<option value="">Unit</option>
 									<option value="A">count</option>
 									<option value="OZ">oz</option>
 									<option value="LB">lb</option>
@@ -213,13 +213,17 @@
 			<div class="panel-body">
 				<div class="filter-section">
 					<div id="search-container">
-						<input type="text" id="search-bar-recipe" class="search-bar" placeholder="Search Recipes" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="searchRecipes('search-bar-recipe','#recipes-panel')">
+						<input type="text" id="search-bar-recipe" class="search-bar" 
+							placeholder="Search Recipes" 
+							autocomplete="off" autocapitalize="off" 
+							spellcheck="false" 
+							oninput="searchRecipes('search-bar-recipe','#recipes-panel')">
 					</div>
 					<div class="filter-select-dropdown" style="width:200px;">
 						<select id="sort-dropdown-recipes" data-sort="recipes" data-container="#recipes-panel" onchange="sortRecipes(this, '#recipes-panel')">
 							<option value="alphabetical">Alphabetical</option>
 							<option value="time">Total Time</option>
-							<option value="ingredient-count">Number of Ingredients</option>
+							<option value="ingredient-count">Ingredient Count</option>
 						</select>
 					</div>
 				</div>
@@ -395,8 +399,6 @@
 {# Script is used to accurately replicate the correct fields for each item and to correctly edit or delete each item.  #}
 <script>
 	function sortRecipes(dropdownId, containerSelector)	{
-		debugger;
-		// const dropdown = document.getElementById(dropdownId);
 		const dropdown = typeof dropdownId === 'string'
 			? document.getElementById(dropdownId)
 			: dropdownId;
@@ -432,7 +434,6 @@
 	}
 
 	function sortIngredients(dropdownId, containerSelector) {
-		// const dropdown = document.getElementById(dropdownId);
 		const dropdown = typeof dropdownId === 'string'
 			? document.getElementById(dropdownId)
 			: dropdownId;
