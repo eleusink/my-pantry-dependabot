@@ -510,6 +510,20 @@ li.expired-symbol::before {
     padding: 2rem;
 }
 
+.delete-recipe-btn {
+    background-color: #e74c3c;
+    color: white;
+    margin-top: 10px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.delete-recipe-btn:hover {
+    background-color: #c0392b;
+}
+
 /* ================= NOTIFICATIONS DISPLAY ================= */
 .expiring-section-label {
   font-weight: bold;
