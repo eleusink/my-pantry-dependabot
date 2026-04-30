@@ -418,7 +418,8 @@ class TestRecipeViews:
         )
 
         response = self.client.post(
-            reverse('delete_recipe', args=[recipe.id])
+            reverse('delete_recipe', args=[recipe.id]),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
         )
 
         assert response.status_code == 200
