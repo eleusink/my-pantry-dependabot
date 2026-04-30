@@ -242,9 +242,18 @@
 									<li>{{ step }}</li>
 								{% endfor %}
 							</ol>
-							<button class="toggle-btn" type="button" onclick="deleteSavedRecipe(this, '{{ recipe.id }}')" style="background-color: #e74c3c; color: white; margin-top: 10px;">
+							<button class="delete-recipe-btn"
+								type="button"
+								onclick="confirmDelete('{{ recipe.name|escapejs }}', 'delete-recipe-{{ recipe.id }}')">
 								Delete Recipe
 							</button>
+
+							<form id="delete-recipe-{{ recipe.id }}"
+								method="POST"
+								action="{% url 'delete_recipe' recipe.id %}"
+								style="display:none;">
+								{% csrf_token %}
+							</form>
 						</div>
 					</div>
 					{% endfor %}
@@ -590,9 +599,17 @@
 	function toggleRecipeCard(btn) {
 		const card = btn.closest('.recipe-card');
 		const expanded = card.querySelector('.recipe-card-expanded');
-		const isOpen = expanded.style.display !== 'none';
-		expanded.style.display = isOpen ? 'none' : 'block';
-		btn.textContent = isOpen ? 'Expand' : 'Collapse';
+		const isOpen = card.classList.contains('recipe-expanded-full');
+
+		if (isOpen) {
+			expanded.style.display = 'none';
+			card.classList.remove('recipe-expanded-full');
+			btn.textContent = 'Open';
+		} else {
+			expanded.style.display = 'block';
+			card.classList.add('recipe-expanded-full');
+			btn.textContent = 'Close';
+		}
 	}
 
 	function saveRecipe(btn) {
