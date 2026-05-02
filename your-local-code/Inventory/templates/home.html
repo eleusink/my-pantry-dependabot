@@ -966,8 +966,7 @@
 		startBtn.addEventListener('click', function(event) {
 			debugger;
 			event.preventDefault(); // ensure mobile devices don't interpret as submit
-			// if (html5QrcodeScanner) return;
-			 if (html5QrcodeScanner) {
+			if (html5QrcodeScanner) {
                 html5QrcodeScanner.clear().then(() => {
                     readerDiv.style.display = 'none';
                     html5QrcodeScanner = null;
@@ -987,7 +986,6 @@
 			statusText.textContent = "Initializing camera...";
 			statusText.style.color = "#555";
 			startBtn.textContent = '✖️ Cancel';
-			// toggleManualBtn.textContent = '✖️ Cancel';
 
 			// Initialize the scanner UI
 			html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 150} }, false);
