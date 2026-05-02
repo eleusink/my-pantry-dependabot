@@ -5,7 +5,7 @@ sqlparse==0.4.4      # SQL parser, required by Django's ORM
 tzdata==2025.3       # Timezone data, required by Django
 
 # Web Server & Static File Management
-gunicorn==25.1.0     # Production WSGI HTTP Server
+gunicorn==25.3.0     # Production WSGI HTTP Server
 whitenoise==6.12.0   # Serves static files directly from the web server
 brotli==1.2.0        # Compression library to make WhiteNoise static files load faster
 
