@@ -1,7 +1,7 @@
 # Framework & Dependencies
-Django==4.2.11
+Django==4.2.30
 asgiref==3.7.2       # ASGI specs, standard for Django async operations
-sqlparse==0.4.4      # SQL parser, required by Django's ORM
+sqlparse==0.5.4      # SQL parser, required by Django's ORM
 tzdata==2025.3       # Timezone data, required by Django
 
 # Web Server & Static File Management
@@ -13,7 +13,7 @@ brotli==1.2.0        # Compression library to make WhiteNoise static files load 
 python-dotenv==1.2.2 # Loads environment variables from a .env file
 
 # External API & HTTP Clients
-requests==2.32.5     # Library for making HTTP(API) requests
+requests==2.33.0     # Library for making HTTP(API) requests
 djangorestframework==3.17.1 # API Framework
 
 # Utilities
