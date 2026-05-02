@@ -423,7 +423,7 @@
 				case 'ingredient-count': 
 					val1 = card1.querySelector('.recipe-ingredients').textContent.split(', ').length;
 					val2 = card2.querySelector('.recipe-ingredients').textContent.split(', ').length;
-					return val2 - val1; // Largest amount first
+					return val1 - val2; // fewest amount first
 				default: 
 					return 0;
 			}
