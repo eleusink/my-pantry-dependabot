@@ -10,5 +10,5 @@ behave-django==1.9.0
 # Additional Sphinx helper extensions
 sphinxcontrib-jquery==4.1
 babel==2.18.0
-Pygments==2.19.2
+Pygments==2.20.0
 docutils==0.22.4
