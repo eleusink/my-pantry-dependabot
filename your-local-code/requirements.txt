@@ -2,7 +2,7 @@
 Django==4.2.11
 asgiref==3.7.2       # ASGI specs, standard for Django async operations
 sqlparse==0.4.4      # SQL parser, required by Django's ORM
-tzdata==2025.3       # Timezone data, required by Django
+tzdata==2026.2       # Timezone data, required by Django
 
 # Web Server & Static File Management
 gunicorn==25.1.0     # Production WSGI HTTP Server
